@@ -1,0 +1,450 @@
+// === Prisma Schema ===
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum StockType {
+  ENTRY
+  EXIT
+  LOSS
+  ADJUSTMENT
+}
+
+enum PaymentType {
+  CASH
+  MOBILE
+  CARD
+  CREDIT
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum OrderStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  CANCELED
+}
+
+enum CreditOpType {
+  DEBIT
+  CREDIT
+}
+
+enum AlertType {
+  STOCK_LOW
+  PAYMENT_OVERDUE
+  SYNC_ERROR
+  SUBSCRIPTION_EXPIRED
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  code        String           @unique
+  description String?
+  roles       RolePermission[]
+  users       UserPermission[]
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id])
+  name        String
+  users       User[]
+  permissions RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+}
+
+model Plan {
+  id             String    @id @default(uuid())
+  name           String    @unique
+  description    String?
+  pricePerMonth  Float?
+  maxUsers       Int?
+  maxProducts    Int?
+  maxSalesPerDay Int?
+  enableSync     Boolean   @default(false)
+  enableReports  Boolean   @default(false)
+  enableMultiPOS Boolean   @default(false)
+  enableExport   Boolean   @default(false)
+  companies      Company[]
+}
+
+model Company {
+  id             String                @id @default(uuid())
+  name           String
+  email          String                @unique
+  phone          String?
+  address        String?
+  planId         String?
+  plan           Plan?                 @relation(fields: [planId], references: [id])
+  subscription   Subscription?
+  users          User[]
+  products       Product[]
+  categories     Category[]
+  customers      Customer[]
+  suppliers      Supplier[]
+  sales          Sale[]
+  stockMovements StockMovement[]
+  alerts         Alert[]
+  syncLogs       SyncLog[]
+  documents      Document[]
+  supplierOrders SupplierOrder[]
+  cashSessions   CashRegisterSession[]
+  discounts      Discount[]
+  tvas           TVA[]
+  roles          Role[]
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  Quote          Quote[]
+  Invoice        Invoice[]
+}
+
+model Subscription {
+  id              String    @id @default(uuid())
+  companyId       String    @unique
+  company         Company   @relation(fields: [companyId], references: [id])
+  status          String
+  startDate       DateTime
+  endDate         DateTime?
+  paymentProvider String
+  paymentRef      String?
+  createdAt       DateTime  @default(now())
+}
+
+model TVA {
+  id        String    @id @default(uuid())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id])
+  name      String
+  rate      Float
+  isDefault Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+  sales     Sale[]
+}
+
+model User {
+  id          String           @id @default(uuid())
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id])
+  roleId      String?
+  role        Role?            @relation(fields: [roleId], references: [id])
+  name        String
+  email       String           @unique
+  password    String
+  status      Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  sales       Sale[]
+  permissions UserPermission[]
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id])
+  name      String
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id             String              @id @default(uuid())
+  companyId      String
+  company        Company             @relation(fields: [companyId], references: [id])
+  categoryId     String?
+  category       Category?           @relation(fields: [categoryId], references: [id])
+  tvaId          String?
+  tva            TVA?                @relation(fields: [tvaId], references: [id])
+  name           String
+  codeBar        String?             @unique
+  description    String?
+  price          Float // Prix de détail (par défaut)
+  priceHalf      Float? // Prix demi-gros (optionnel)
+  priceWholesale Float? // Prix gros (optionnel)
+  unit           String
+  stockMin       Int                 @default(0)
+  mainImage      String?
+  stockMovements StockMovement[]
+  saleItems      SaleItem[]
+  orderItems     SupplierOrderItem[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  Discount       Discount[]
+}
+
+model StockMovement {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  type        StockType
+  quantity    Int
+  description String?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+}
+
+model Sale {
+  id          String      @id @default(uuid())
+  companyId   String
+  company     Company     @relation(fields: [companyId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  customerId  String?
+  customer    Customer?   @relation(fields: [customerId], references: [id])
+  tvaId       String?
+  tva         TVA?        @relation(fields: [tvaId], references: [id])
+  total       Float
+  paymentType PaymentType
+  status      String
+  saleItems   SaleItem[]
+  payments    Payment[]
+  discounts   Discount[]
+  createdAt   DateTime    @default(now())
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float
+  total     Float
+}
+
+model Payment {
+  id     String      @id @default(uuid())
+  saleId String
+  sale   Sale        @relation(fields: [saleId], references: [id])
+  amount Float
+  method PaymentType
+  paidAt DateTime    @default(now())
+  note   String?
+}
+
+model Customer {
+  id            String                  @id @default(uuid())
+  companyId     String
+  company       Company                 @relation(fields: [companyId], references: [id])
+  name          String
+  phone         String?
+  email         String?
+  address       String?
+  credit        Float                   @default(0)
+  creditLimit   Float?
+  sales         Sale[]
+  creditHistory CustomerCreditHistory[]
+  createdAt     DateTime                @default(now())
+  Quote         Quote[]
+  Invoice       Invoice[]
+}
+
+model CustomerCreditHistory {
+  id         String       @id @default(uuid())
+  customerId String
+  customer   Customer     @relation(fields: [customerId], references: [id])
+  type       CreditOpType
+  amount     Float
+  note       String?
+  createdAt  DateTime     @default(now())
+}
+
+model Supplier {
+  id        String          @id @default(uuid())
+  companyId String
+  company   Company         @relation(fields: [companyId], references: [id])
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  orders    SupplierOrder[]
+  createdAt DateTime        @default(now())
+}
+
+model SupplierOrder {
+  id         String              @id @default(uuid())
+  companyId  String
+  company    Company             @relation(fields: [companyId], references: [id])
+  supplierId String
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  status     OrderStatus
+  total      Float
+  note       String?
+  orderItems SupplierOrderItem[]
+  payments   SupplierPayment[]
+  createdAt  DateTime            @default(now())
+}
+
+model SupplierOrderItem {
+  id              String        @id @default(uuid())
+  supplierOrderId String
+  supplierOrder   SupplierOrder @relation(fields: [supplierOrderId], references: [id])
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  quantity        Int
+  unitPrice       Float
+  total           Float
+}
+
+model SupplierPayment {
+  id              String        @id @default(uuid())
+  supplierOrderId String
+  supplierOrder   SupplierOrder @relation(fields: [supplierOrderId], references: [id])
+  amount          Float
+  method          PaymentType
+  paidAt          DateTime      @default(now())
+  note            String?
+}
+
+model CashRegisterSession {
+  id            String         @id @default(uuid())
+  companyId     String
+  company       Company        @relation(fields: [companyId], references: [id])
+  openedById    String
+  openedAt      DateTime       @default(now())
+  closedAt      DateTime?
+  initialAmount Float
+  finalAmount   Float?
+  status        String
+  movements     CashMovement[]
+}
+
+model CashMovement {
+  id          String              @id @default(uuid())
+  sessionId   String
+  session     CashRegisterSession @relation(fields: [sessionId], references: [id])
+  amount      Float
+  type        String
+  description String?
+  createdAt   DateTime            @default(now())
+}
+
+model SyncLog {
+  id        String    @id @default(uuid())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id])
+  entity    String
+  operation String
+  status    String
+  message   String?
+  syncedAt  DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Alert {
+  id        String    @id @default(uuid())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id])
+  type      AlertType
+  message   String
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  title       String
+  fileUrl     String
+  relatedType String
+  relatedId   String
+  uploadedAt  DateTime @default(now())
+}
+
+model Discount {
+  id        String       @id @default(uuid())
+  companyId String
+  company   Company      @relation(fields: [companyId], references: [id])
+  productId String?
+  product   Product?     @relation(fields: [productId], references: [id])
+  saleId    String?
+  sale      Sale?        @relation(fields: [saleId], references: [id])
+  value     Float
+  type      DiscountType
+  startsAt  DateTime?
+  endsAt    DateTime?
+}
+
+// Nouveau modèle : Devis (Quote)
+model Quote {
+  id         String      @id @default(uuid())
+  companyId  String
+  company    Company     @relation(fields: [companyId], references: [id])
+  customerId String?
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  title      String
+  total      Float
+  status     String // draft, sent, accepted, rejected
+  quoteItems QuoteItem[]
+  createdAt  DateTime    @default(now())
+  Invoice    Invoice[]
+}
+
+model QuoteItem {
+  id        String @id @default(uuid())
+  quoteId   String
+  quote     Quote  @relation(fields: [quoteId], references: [id])
+  name      String
+  quantity  Int
+  unitPrice Float
+  total     Float
+}
+
+// Nouveau modèle : Facture (Invoice)
+model Invoice {
+  id           String        @id @default(uuid())
+  companyId    String
+  company      Company       @relation(fields: [companyId], references: [id])
+  customerId   String?
+  customer     Customer?     @relation(fields: [customerId], references: [id])
+  quoteId      String? // facultatif si provient d'un devis
+  quote        Quote?        @relation(fields: [quoteId], references: [id])
+  title        String
+  total        Float
+  dueDate      DateTime?
+  status       String // unpaid, paid, partial, overdue
+  invoiceItems InvoiceItem[]
+  createdAt    DateTime      @default(now())
+}
+
+model InvoiceItem {
+  id        String  @id @default(uuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+  name      String
+  quantity  Int
+  unitPrice Float
+  total     Float
+}
