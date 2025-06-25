@@ -118,6 +118,8 @@ model Company {
   discounts      Discount[]
   tvas           TVA[]
   roles          Role[]
+  signatureUrl   String?
+  stampUrl       String?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
   Quote          Quote[]
@@ -433,6 +435,10 @@ model Invoice {
   quote        Quote?        @relation(fields: [quoteId], references: [id])
   title        String
   total        Float
+  tva          Float? // TVA appliquée, choisie par la société (en % ou montant)
+  issueDate    DateTime? // Date d’émission
+  note         String? // Note facultative sur la facture
+  comment      String? // Commentaire interne ou pour le client
   dueDate      DateTime?
   status       String // unpaid, paid, partial, overdue
   invoiceItems InvoiceItem[]

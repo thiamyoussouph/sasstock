@@ -1,5 +1,3 @@
-// types/invoice.ts
-
 export interface InvoiceItemPayload {
     name: string;
     quantity: number;
@@ -12,6 +10,10 @@ export interface CreateInvoicePayload {
     quoteId?: string;
     title: string;
     dueDate?: Date;
+    issueDate?: Date; // ✅ nouvelle propriété
+    tva?: number;      // ✅ nouvelle propriété
+    note?: string;     // ✅ nouvelle propriété
+    comment?: string;  // ✅ nouvelle propriété
     items: InvoiceItemPayload[];
 }
 
@@ -40,8 +42,12 @@ export interface Invoice {
     title: string;
     total: number;
     dueDate?: string;
+    issueDate?: string;   // ✅ nouvelle propriété
     status: 'unpaid' | 'paid' | 'partial' | 'overdue';
     invoiceItems: InvoiceItem[];
-    customer?: Customer; // ✅ AJOUTER CECI pour éviter l'erreur
+    customer?: Customer;
+    tva?: number;          // ✅ nouvelle propriété
+    note?: string;         // ✅ nouvelle propriété
+    comment?: string;      // ✅ nouvelle propriété
     createdAt: string;
 }

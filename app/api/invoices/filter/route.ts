@@ -1,18 +1,21 @@
-// /app/api/invoices/filter/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
     try {
-        const { companyId, fromDate, toDate, status } = await req.json();
+        const { companyId, status, issueDateFrom, issueDateTo, dueDateFrom, dueDateTo } = await req.json();
 
         const invoices = await prisma.invoice.findMany({
             where: {
                 companyId,
                 status: status || undefined,
-                createdAt: {
-                    gte: fromDate ? new Date(fromDate) : undefined,
-                    lte: toDate ? new Date(toDate) : undefined
+                issueDate: {
+                    gte: issueDateFrom ? new Date(issueDateFrom) : undefined,
+                    lte: issueDateTo ? new Date(issueDateTo) : undefined
+                },
+                dueDate: {
+                    gte: dueDateFrom ? new Date(dueDateFrom) : undefined,
+                    lte: dueDateTo ? new Date(dueDateTo) : undefined
                 }
             },
             include: { customer: true, invoiceItems: true },
