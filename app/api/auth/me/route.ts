@@ -1,22 +1,25 @@
-// /pages/api/auth/me.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
+// app/api/auth/me/route.ts
+export const dynamic = 'force-dynamic';
+import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'super_secret_ladygest';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-    const authHeader = req.headers.authorization;
+export async function GET(request: Request) {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ message: 'Token manquant ou invalide.' });
+    if (!token) {
+        return NextResponse.json({ message: 'Non autorisé' }, { status: 401 });
     }
 
-    const token = authHeader.split(' ')[1];
-
     try {
-        const decoded = jwt.verify(token, SECRET_KEY);
-        return res.status(200).json({ user: decoded });
+        const payload = jwt.verify(token, SECRET_KEY);
+
+        return NextResponse.json({ user: payload });
     } catch (error) {
-        return res.status(401).json({ message: 'Token invalide ou expiré.' });
+        console.log('Erreur de vérification du token:', error);
+
+        return NextResponse.json({ message: 'Token invalide' }, { status: 401 });
     }
 }

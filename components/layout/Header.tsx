@@ -29,7 +29,7 @@ export function AdminHeader() {
         .toUpperCase();
 
     return (
-        <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 shadow-sm bg-white dark:bg-[#102452]">
             <h1 className="text-lg font-semibold">
                 Bonjour{user ? `, ${user.name}` : ''}
             </h1>

@@ -1,8 +1,6 @@
 'use client';
 
 import { useAuthStore } from '@/stores/auth-store';
-import { redirect } from 'next/navigation';
-
 export default function DashboardPage() {
     const { user } = useAuthStore();
 

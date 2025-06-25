@@ -48,13 +48,14 @@ export function Sidebar({ className }: { className?: string }) {
                             className={cn(
                                 'flex items-center gap-3 px-3 py-2 rounded-lg transition',
                                 isActive
-                                    ? 'bg-white text-[#102452] font-semibold'
+                                    ? 'bg-white text-[#102452] font-semibold border-l-4 border-blue-500 pl-2'
                                     : 'hover:bg-blue-900 text-white'
                             )}
                         >
-                            <Icon size={20} />
+                            <Icon size={20} className={cn(isActive ? 'text-[#102452]' : 'text-white')} />
                             {!collapsed && <span className="whitespace-nowrap">{label}</span>}
                         </Link>
+
                     );
                 })}
             </nav>

@@ -28,7 +28,7 @@ export default function LoginPage() {
     if (user) {
       router.push('/admin/dashboard');
     }
-  }, [user]);
+  }, [user, router]);
 
   const validateForm = () => {
     let valid = true;
