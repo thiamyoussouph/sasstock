@@ -3,15 +3,11 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Settings, User, Box, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sidebarItems } from '@/constants/sidebar-items';
 
-const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: Home },
-    { label: 'Produits', href: '/admin/products', icon: Box },
-    { label: 'Utilisateurs', href: '/admin/users', icon: User },
-    { label: 'Paramètres', href: '/admin/settings', icon: Settings },
-];
+
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
@@ -38,7 +34,7 @@ export function Sidebar({ className }: { className?: string }) {
 
             {/* NAVIGATION */}
             <nav className="space-y-3 flex-1">
-                {navItems.map(({ label, href, icon: Icon }) => {
+                {sidebarItems.map(({ label, href, icon: Icon }) => {
                     const isActive = pathname === href;
 
                     return (

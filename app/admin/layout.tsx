@@ -1,3 +1,4 @@
+'use client';
 import '@/app/globals.css';
 import { AdminHeader } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';

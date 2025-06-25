@@ -24,6 +24,14 @@ export interface InvoiceItem {
     total: number;
 }
 
+export interface Customer {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+}
+
 export interface Invoice {
     id: string;
     companyId: string;
@@ -34,5 +42,6 @@ export interface Invoice {
     dueDate?: string;
     status: 'unpaid' | 'paid' | 'partial' | 'overdue';
     invoiceItems: InvoiceItem[];
+    customer?: Customer; // ✅ AJOUTER CECI pour éviter l'erreur
     createdAt: string;
 }
