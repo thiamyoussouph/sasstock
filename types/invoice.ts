@@ -10,11 +10,12 @@ export interface CreateInvoicePayload {
     quoteId?: string;
     title: string;
     dueDate?: Date;
+    status: 'unpaid' | 'paid' | 'partial' | 'overdue';
     issueDate?: Date; // ✅ nouvelle propriété
     tva?: number;      // ✅ nouvelle propriété
     note?: string;     // ✅ nouvelle propriété
     comment?: string;  // ✅ nouvelle propriété
-    items: InvoiceItemPayload[];
+    invoiceItems: InvoiceItemPayload[];
 }
 
 export interface InvoiceItem {
@@ -42,6 +43,7 @@ export interface Invoice {
     title: string;
     total: number;
     dueDate?: string;
+    invoiceNumber: string;
     issueDate?: string;   // ✅ nouvelle propriété
     status: 'unpaid' | 'paid' | 'partial' | 'overdue';
     invoiceItems: InvoiceItem[];

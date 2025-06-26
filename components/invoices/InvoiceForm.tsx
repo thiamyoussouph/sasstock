@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Trash2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+
 import {
     Select,
     SelectTrigger,
@@ -15,7 +18,14 @@ import {
 } from '@/components/ui/select';
 import InvoicePreview from './InvoicePreview';
 import { useAuthStore } from '@/stores/auth-store';
+import { useInvoiceStore } from '@/stores/invoice-store';
+import { toast } from 'react-toastify';
 
+// Temporaire : à remplacer par une vraie liste des clients depuis API
+const clients = [
+    { id: '1', name: 'Client A' },
+    { id: '2', name: 'Client B' },
+];
 
 type Product = {
     quantity: number;
@@ -27,32 +37,26 @@ type Product = {
 export default function CreateInvoiceForm() {
     const { user } = useAuthStore();
     const company = user?.company;
+    const { createInvoice } = useInvoiceStore();
+    const router = useRouter();
 
     const [products, setProducts] = useState<Product[]>([
         { quantity: 1, description: '', unitPrice: 0, total: 0 },
     ]);
 
-    const [clientName, setClientName] = useState('');
-    const [clientAddress, setClientAddress] = useState('');
-    const [emitterName, setEmitterName] = useState('');
-    const [emitterAddress, setEmitterAddress] = useState('');
-    const [emitterPhone, setEmitterPhone] = useState('');
-    const [emitterEmail, setEmitterEmail] = useState('');
+    const [customerId, setCustomerId] = useState<string>('');
+    const [invoiceTitle, setInvoiceTitle] = useState('');
     const [tvaRate, setTvaRate] = useState(20);
     const [date, setDate] = useState('');
     const [dueDate, setDueDate] = useState('');
-    const [status, setStatus] = useState('pending');
+    const [status, setStatus] = useState<'unpaid' | 'paid'>('unpaid');
     const [tvaEnabled, setTvaEnabled] = useState(true);
-    const [invoiceTitle, setInvoiceTitle] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        if (company) {
-            setEmitterName(company.name || '');
-            setEmitterAddress(company.address || '');
-            setEmitterPhone(company.phone || '');
-            setEmitterEmail(company.email || '');
-        }
-    }, [company]);
+    const emitterName = company?.name || '';
+    const emitterAddress = company?.address || '';
+    const emitterPhone = company?.phone || '';
+    const emitterEmail = company?.email || '';
 
     const handleProductChange = (
         index: number,
@@ -71,14 +75,64 @@ export default function CreateInvoiceForm() {
     };
 
     const totalHT = products.reduce((acc, p) => acc + p.total, 0);
-    const totalTVA = (totalHT * tvaRate) / 100;
+    const totalTVA = tvaEnabled ? (totalHT * tvaRate) / 100 : 0;
     const totalTTC = totalHT + totalTVA;
+
+    const handleSubmit = async () => {
+        setIsLoading(true);
+
+        try {
+            if (!company?.id) {
+                toast.error('Entreprise introuvable.');
+                return;
+            }
+
+            if (!invoiceTitle.trim()) {
+                toast.error('Le nom de la facture est obligatoire.');
+                return;
+            }
+
+            if (!date || !dueDate) {
+                toast.error('Les dates sont obligatoires.');
+                return;
+            }
+
+            if (products.length === 0 || products.some(p => !p.description.trim())) {
+                toast.error('Veuillez ajouter au moins un produit avec une description.');
+                return;
+            }
+
+            await createInvoice({
+                companyId: company.id,
+                customerId,
+                title: invoiceTitle,
+                status,
+                tva: tvaEnabled ? tvaRate : 0,
+                issueDate: new Date(date),
+                dueDate: new Date(dueDate),
+                comment: '',
+                note: '',
+                invoiceItems: products.map((p) => ({
+                    name: p.description,
+                    quantity: p.quantity,
+                    unitPrice: p.unitPrice,
+                })),
+            });
+
+            toast.success('Facture créée avec succès !');
+            router.push('/admin/invoices');
+        } catch (error) {
+            console.error('Erreur création facture', error);
+            toast.error("Une erreur s'est produite lors de la création.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-            {/* Bloc gauche */}
             <div className="space-y-4">
-                {/* Statut et sauvegarde */}
                 <div className="bg-white p-4 rounded shadow flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                     <div className="flex-1">
                         <label className="block text-sm font-medium mb-1">Nom de la facture</label>
@@ -91,27 +145,57 @@ export default function CreateInvoiceForm() {
 
                     <div className="w-full md:w-40">
                         <label className="block text-sm font-medium mb-1">Statut</label>
-                        <Select value={status} onValueChange={setStatus}>
+                        <Select value={status} onValueChange={(v) => setStatus(v as 'unpaid' | 'paid')}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Statut" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="pending">En attente</SelectItem>
+                                <SelectItem value="unpaid">En attente</SelectItem>
                                 <SelectItem value="paid">Payée</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     <div className="w-full md:w-auto">
-                        <Button className="w-full md:w-auto">Sauvegarder</Button>
+                        <Button
+                            className="w-full md:w-auto bg-green-600 hover:bg-green-700"
+                            onClick={handleSubmit}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sauvegarder'}
+                        </Button>
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
+                <div className="bg-white p-4 rounded shadow">
+                    <label className="block text-sm font-medium mb-1">Client</label>
+                    <Select value={customerId} onValueChange={setCustomerId}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un client" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {clients.map((client) => (
+                                <SelectItem key={client.id} value={client.id}>
+                                    {client.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="bg-white p-4 rounded shadow">
+                    <label className="block text-sm font-medium mb-1">Date de facture</label>
+                    <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+
+                    <label className="block text-sm font-medium mb-1 mt-4">Date d'échéance</label>
+                    <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                </div>
+
+                <div className="bg-white p-4 rounded shadow">
                     <h3 className="font-bold text-lg mb-4">Résumé des Totaux</h3>
                     <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                            <span>Total Hors Taxes :</span>
+                            <span>Total HT :</span>
                             <span>{totalHT.toFixed(2)} €</span>
                         </div>
                         {tvaEnabled && (
@@ -126,14 +210,12 @@ export default function CreateInvoiceForm() {
                         </div>
                     </div>
 
-                    <div className="mt-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">Activer la TVA</label>
-                            <Switch checked={tvaEnabled} onCheckedChange={setTvaEnabled} />
-                        </div>
+                    <div className="mt-4">
+                        <label className="text-sm font-medium">Activer la TVA</label>
+                        <Switch checked={tvaEnabled} onCheckedChange={setTvaEnabled} />
 
                         {tvaEnabled && (
-                            <div>
+                            <div className="mt-2">
                                 <label className="block text-sm font-medium mb-1">Taux TVA (%)</label>
                                 <Input
                                     type="number"
@@ -144,76 +226,10 @@ export default function CreateInvoiceForm() {
                         )}
                     </div>
                 </div>
-                <div className="flex gap-4 bg-white dark:bg-gray-800 p-4 rounded shadow">
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1">
-                            Date de la facture
-                        </label>
-                        <Input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1">
-                            Date d'échéance
-                        </label>
-                        <Input
-                            type="date"
-                            value={dueDate}
-                            onChange={(e) => setDueDate(e.target.value)}
-                        />
-                    </div>
-                </div>
-                {/* Émetteur */}
-                <div className="bg-white dark:bg-gray-800 p-4 rounded shadow space-y-2">
-                    <h3 className="font-bold text-lg mb-4">Émetteur</h3>
-                    <Input
-                        placeholder="Nom de l'entreprise"
-                        value={emitterName}
-                        readOnly
-                        className="opacity-70 cursor-not-allowed"
-                    />
-                    <Textarea
-                        placeholder="Adresse"
-                        value={emitterAddress}
-                        readOnly
-                        className="opacity-70 cursor-not-allowed"
-                    />
-                    <Input
-                        placeholder="Téléphone"
-                        value={emitterPhone}
-                        readOnly
-                        className="opacity-70 cursor-not-allowed"
-                    />
-                    <Input
-                        placeholder="Email"
-                        value={emitterEmail}
-                        readOnly
-                        className="opacity-70 cursor-not-allowed"
-                    />
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
-                    <h3 className="font-bold text-lg mb-4">Client</h3>
-                    <Input
-                        placeholder="Nom du client"
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                    />
-                    <Textarea
-                        placeholder="Adresse"
-                        value={clientAddress}
-                        onChange={(e) => setClientAddress(e.target.value)}
-                    />
-                </div>
-
-
             </div>
 
             <div className="space-y-4">
-                <div className="bg-white dark:bg-gray-800 p-4 rounded shadow space-y-4">
+                <div className="bg-white p-4 rounded shadow space-y-4">
                     <h3 className="font-bold text-lg">Produits / Services</h3>
 
                     {products.map((p, index) => (
@@ -222,63 +238,44 @@ export default function CreateInvoiceForm() {
                                 type="number"
                                 placeholder="Quantité"
                                 value={p.quantity}
-                                onChange={(e) =>
-                                    handleProductChange(index, 'quantity', e.target.value)
-                                }
+                                onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
                             />
                             <Input
                                 placeholder="Description"
                                 value={p.description}
-                                onChange={(e) =>
-                                    handleProductChange(index, 'description', e.target.value)
-                                }
+                                onChange={(e) => handleProductChange(index, 'description', e.target.value)}
                                 className="col-span-2"
                             />
                             <Input
                                 type="number"
                                 placeholder="Prix unitaire"
                                 value={p.unitPrice}
-                                onChange={(e) =>
-                                    handleProductChange(index, 'unitPrice', e.target.value)
-                                }
+                                onChange={(e) => handleProductChange(index, 'unitPrice', e.target.value)}
                             />
-                            <div className="text-right font-semibold">
-                                {p.total.toFixed(2)} €
-                            </div>
+                            <div className="text-right font-semibold">{p.total.toFixed(2)} €</div>
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setProducts(products.filter((_, i) => i !== index))
-                                }
+                                onClick={() => setProducts(products.filter((_, i) => i !== index))}
                                 className="text-red-600 hover:text-red-800"
-                                title="Supprimer"
                             >
                                 <Trash2 size={20} />
                             </button>
                         </div>
                     ))}
-                    <div className="pt-2">
-                        <Button
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                            onClick={() =>
-                                setProducts([
-                                    ...products,
-                                    { quantity: 1, description: '', unitPrice: 0, total: 0 },
-                                ])
-                            }
-                        >
-                            + Ajouter
-                        </Button>
-                    </div>
+
+                    <Button className='bg-blue-500 hover:bg-blue-600' onClick={() => setProducts([...products, { quantity: 1, description: '', unitPrice: 0, total: 0 }])}>
+                        + Ajouter un produit
+                    </Button>
                 </div>
+
                 <InvoicePreview
                     invoiceNumber={invoiceTitle}
                     emitterName={emitterName}
                     emitterEmail={emitterEmail}
                     emitterPhone={emitterPhone}
                     emitterAddress={emitterAddress}
-                    clientName={clientName}
-                    clientAddress={clientAddress}
+                    clientName={''}
+                    clientAddress={''}
                     date={date}
                     dueDate={dueDate}
                     products={products}

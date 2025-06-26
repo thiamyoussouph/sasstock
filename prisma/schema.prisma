@@ -437,7 +437,7 @@ model Invoice {
   quoteId      String?
   quote        Quote?        @relation(fields: [quoteId], references: [id])
   title        String
-  number       String // Numéro visible type "FAC-2025-001"
+  invoiceNumber        String // Numéro visible type "FAC-2025-001"
   total        Float
   tva          Float?
   issueDate    DateTime?
@@ -448,7 +448,7 @@ model Invoice {
   invoiceItems InvoiceItem[]
   createdAt    DateTime      @default(now())
 
-  @@unique([companyId, number]) // ✅ Unicité du numéro par entreprise
+  @@unique([companyId, invoiceNumber ]) // ✅ Unicité du numéro par entreprise
 }
 
 model InvoiceItem {

@@ -1,8 +1,9 @@
 'use client';
 
 import { create } from 'zustand';
-import { Invoice } from '@/types/invoice';
 import { persist } from 'zustand/middleware';
+import { Invoice } from '@/types/invoice';
+import { CreateInvoicePayload } from '@/types/invoice';
 
 interface InvoiceStore {
     invoices: Invoice[];
@@ -12,7 +13,7 @@ interface InvoiceStore {
 
     fetchInvoicesByCompany: (companyId: string) => Promise<void>;
     getInvoiceDetails: (id: string) => Promise<void>;
-    createInvoice: (data: Partial<Invoice>) => Promise<void>;
+    createInvoice: (data: CreateInvoicePayload) => Promise<void>;
     updateInvoice: (id: string, data: Partial<Invoice>) => Promise<void>;
     filterInvoices: (filters: { status?: string; startDate?: string; endDate?: string }) => Promise<void>;
     clearSelectedInvoice: () => void;
@@ -30,10 +31,11 @@ export const useInvoiceStore = create<InvoiceStore>()(
                 set({ loading: true, error: null });
                 try {
                     const res = await fetch(`/api/invoices/company/${companyId}`);
+                    if (!res.ok) throw new Error('Erreur lors du chargement des factures.');
                     const data = await res.json();
                     set({ invoices: data, loading: false });
-                } catch (err) {
-                    set({ error: 'Erreur lors du chargement des factures.', loading: false });
+                } catch (err: any) {
+                    set({ error: err.message || 'Erreur inconnue', loading: false });
                 }
             },
 
@@ -41,14 +43,15 @@ export const useInvoiceStore = create<InvoiceStore>()(
                 set({ loading: true, error: null });
                 try {
                     const res = await fetch(`/api/invoices/details/${id}`);
+                    if (!res.ok) throw new Error('Erreur lors du chargement des détails.');
                     const data = await res.json();
                     set({ selectedInvoice: data, loading: false });
-                } catch (err) {
-                    set({ error: 'Erreur lors du chargement des détails.', loading: false });
+                } catch (err: any) {
+                    set({ error: err.message || 'Erreur inconnue', loading: false });
                 }
             },
 
-            async createInvoice(data) {
+            async createInvoice(data: CreateInvoicePayload) {
                 set({ loading: true, error: null });
                 try {
                     const res = await fetch('/api/invoices/create', {
@@ -56,8 +59,13 @@ export const useInvoiceStore = create<InvoiceStore>()(
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data),
                     });
+                    console.log('Creating invoice with data:', res);
+                    
 
-                    if (!res.ok) throw new Error('Erreur lors de la création de la facture');
+                    if (!res.ok) {
+                        const errRes = await res.json();
+                        throw new Error(errRes.message || 'Erreur lors de la création de la facture');
+                    }
 
                     const newInvoice = await res.json();
                     set((state) => ({
@@ -65,9 +73,10 @@ export const useInvoiceStore = create<InvoiceStore>()(
                         loading: false,
                     }));
                 } catch (err: any) {
-                    set({ error: err.message, loading: false });
+                    set({ error: err.message || 'Erreur inconnue', loading: false });
                 }
             },
+
 
             async updateInvoice(id, data) {
                 set({ loading: true, error: null });
@@ -86,7 +95,7 @@ export const useInvoiceStore = create<InvoiceStore>()(
                         loading: false,
                     }));
                 } catch (err: any) {
-                    set({ error: err.message, loading: false });
+                    set({ error: err.message || 'Erreur inconnue', loading: false });
                 }
             },
 
@@ -99,10 +108,11 @@ export const useInvoiceStore = create<InvoiceStore>()(
                         body: JSON.stringify(filters),
                     });
 
+                    if (!res.ok) throw new Error('Erreur lors du filtrage');
                     const data = await res.json();
                     set({ invoices: data, loading: false });
-                } catch (err) {
-                    set({ error: 'Erreur lors du filtrage.', loading: false });
+                } catch (err: any) {
+                    set({ error: err.message || 'Erreur inconnue', loading: false });
                 }
             },
 
