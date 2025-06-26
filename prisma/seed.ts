@@ -29,7 +29,7 @@ async function main() {
         },
     });
 
-    // ➤ Créer une entreprise de test
+    // ➤ Créer une entreprise de test avec les nouveaux champs
     const company = await prisma.company.upsert({
         where: { email: 'admin@ladygest.com' },
         update: {},
@@ -37,7 +37,11 @@ async function main() {
             name: 'Carlos Center',
             email: 'admin@ladygest.com',
             address: 'Dakar, Sénégal',
+            phone: '+221778889999',
             planId: defaultPlan.id,
+            invoicePrefix: 'FAC',         // ➕ Préfixe par défaut
+            lastInvoiceNumber: 0,         // ➕ Dernier numéro (sera incrémenté à chaque facture)
+            lastInvoiceYear: new Date().getFullYear(), // ➕ Année en cours
         },
     });
 

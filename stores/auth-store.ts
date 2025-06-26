@@ -3,13 +3,26 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Modèle Company simplifié (reprend les infos nécessaires à l'affichage)
+interface Company {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    address?: string;
+    signatureUrl?: string;
+    stampUrl?: string;
+}
+
+// User étendu avec la relation à la company
 interface User {
     id: string;
     name: string;
     email: string;
-    companyId: string;
     role: string | null;
     permissions: string[];
+    companyId: string;
+    company: Company; // <= ici
 }
 
 interface AuthStore {
@@ -45,7 +58,7 @@ export const useAuthStore = create<AuthStore>()(
                     if (!res.ok) throw new Error(data.message || 'Erreur de connexion');
 
                     set({
-                        user: data.user,
+                        user: data.user, // `data.user.company` doit être présent dans la réponse
                         token: data.token,
                         loading: false,
                         error: null,
@@ -62,7 +75,8 @@ export const useAuthStore = create<AuthStore>()(
             setUser: (user) => set({ user }),
         }),
         {
-            name: 'auth-storage', // clé locale (localStorage)
+            name: 'auth-storage',
         }
     )
 );
+

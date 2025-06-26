@@ -71,7 +71,7 @@ export default function InvoiceList() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
                 <h2 className="text-2xl font-bold">Liste des factures</h2>
                 <div className="flex gap-2">
-                    <Button onClick={() => router.push('/admin/invoices/new')} className="bg-blue-600 text-white hover:bg-blue-700">
+                    <Button onClick={() => router.push('/admin/invoices/create')} className="bg-blue-600 text-white hover:bg-blue-700">
                         Nouvelle facture
                     </Button>
                     <Button onClick={exportPDF}>Exporter en PDF</Button>

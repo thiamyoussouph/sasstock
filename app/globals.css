@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@media print {
+  .print-safe {
+    background-color: #fff !important;
+    color: #000 !important;
+  }
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -116,6 +122,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

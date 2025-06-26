@@ -62,7 +62,12 @@ export async function POST(req: NextRequest) {
                 email: user.email,
                 company: {
                     id: user.company.id,
-                    name: user.company.name
+                    name: user.company.name,
+                    phone: user.company.phone ?? null,
+                    address: user.company.address ?? null,
+                    email: user.company.email ?? null,
+                    signatureUrl: user.company.signatureUrl ?? null,
+                    stampUrl: user.company.stampUrl ?? null
                 },
                 role: user.role?.name ?? null,
                 permissions: allPermissions

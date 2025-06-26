@@ -95,35 +95,38 @@ model Plan {
 }
 
 model Company {
-  id             String                @id @default(uuid())
-  name           String
-  email          String                @unique
-  phone          String?
-  address        String?
-  planId         String?
-  plan           Plan?                 @relation(fields: [planId], references: [id])
-  subscription   Subscription?
-  users          User[]
-  products       Product[]
-  categories     Category[]
-  customers      Customer[]
-  suppliers      Supplier[]
-  sales          Sale[]
-  stockMovements StockMovement[]
-  alerts         Alert[]
-  syncLogs       SyncLog[]
-  documents      Document[]
-  supplierOrders SupplierOrder[]
-  cashSessions   CashRegisterSession[]
-  discounts      Discount[]
-  tvas           TVA[]
-  roles          Role[]
-  signatureUrl   String?
-  stampUrl       String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  Quote          Quote[]
-  Invoice        Invoice[]
+  id                String                @id @default(uuid())
+  name              String
+  email             String                @unique
+  phone             String?
+  address           String?
+  planId            String?
+  plan              Plan?                 @relation(fields: [planId], references: [id])
+  subscription      Subscription?
+  users             User[]
+  products          Product[]
+  categories        Category[]
+  customers         Customer[]
+  suppliers         Supplier[]
+  sales             Sale[]
+  stockMovements    StockMovement[]
+  alerts            Alert[]
+  syncLogs          SyncLog[]
+  documents         Document[]
+  supplierOrders    SupplierOrder[]
+  cashSessions      CashRegisterSession[]
+  discounts         Discount[]
+  tvas              TVA[]
+  roles             Role[]
+  signatureUrl      String?
+  stampUrl          String?
+  invoicePrefix     String                @default("FAC")
+  lastInvoiceNumber Int                   @default(0)
+  lastInvoiceYear   Int                   @default(2025)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  Quote             Quote[]
+  Invoice           Invoice[]
 }
 
 model Subscription {
@@ -431,18 +434,21 @@ model Invoice {
   company      Company       @relation(fields: [companyId], references: [id])
   customerId   String?
   customer     Customer?     @relation(fields: [customerId], references: [id])
-  quoteId      String? // facultatif si provient d'un devis
+  quoteId      String?
   quote        Quote?        @relation(fields: [quoteId], references: [id])
   title        String
+  number       String // Numéro visible type "FAC-2025-001"
   total        Float
-  tva          Float? // TVA appliquée, choisie par la société (en % ou montant)
-  issueDate    DateTime? // Date d’émission
-  note         String? // Note facultative sur la facture
-  comment      String? // Commentaire interne ou pour le client
+  tva          Float?
+  issueDate    DateTime?
+  note         String?
+  comment      String?
   dueDate      DateTime?
-  status       String // unpaid, paid, partial, overdue
+  status       String
   invoiceItems InvoiceItem[]
   createdAt    DateTime      @default(now())
+
+  @@unique([companyId, number]) // ✅ Unicité du numéro par entreprise
 }
 
 model InvoiceItem {
