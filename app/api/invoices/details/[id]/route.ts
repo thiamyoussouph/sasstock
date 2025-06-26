@@ -6,7 +6,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     try {
         const invoice = await prisma.invoice.findUnique({
             where: { id: params.id },
-            include: { customer: true, invoiceItems: true }
+            include: { customer: true, invoiceItems: true, company: true },
         });
 
         if (!invoice) {
