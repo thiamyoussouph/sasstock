@@ -15,7 +15,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <main className="flex-1 flex flex-col">
                     <AdminHeader />
                     <ToastContainer position="top-right" autoClose={3000} />
-
                     <div className="p-6">{children}</div>
                 </main>
             </ThemeProvider>
