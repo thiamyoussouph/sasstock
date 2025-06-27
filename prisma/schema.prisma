@@ -178,6 +178,7 @@ model Category {
   products  Product[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  @@unique([companyId, name]) // ← Contrainte unique sur name pour chaque company
 }
 
 model Product {
@@ -203,6 +204,7 @@ model Product {
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   Discount       Discount[]
+  @@unique([companyId, name]) // ← Contrainte unique sur name pour chaque company
 }
 
 model StockMovement {
@@ -429,26 +431,26 @@ model QuoteItem {
 
 // Nouveau modèle : Facture (Invoice)
 model Invoice {
-  id           String        @id @default(uuid())
-  companyId    String
-  company      Company       @relation(fields: [companyId], references: [id])
-  customerId   String?
-  customer     Customer?     @relation(fields: [customerId], references: [id])
-  quoteId      String?
-  quote        Quote?        @relation(fields: [quoteId], references: [id])
-  title        String
-  invoiceNumber        String // Numéro visible type "FAC-2025-001"
-  total        Float
-  tva          Float?
-  issueDate    DateTime?
-  note         String?
-  comment      String?
-  dueDate      DateTime?
-  status       String
-  invoiceItems InvoiceItem[]
-  createdAt    DateTime      @default(now())
+  id            String        @id @default(uuid())
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id])
+  customerId    String?
+  customer      Customer?     @relation(fields: [customerId], references: [id])
+  quoteId       String?
+  quote         Quote?        @relation(fields: [quoteId], references: [id])
+  title         String
+  invoiceNumber String // Numéro visible type "FAC-2025-001"
+  total         Float
+  tva           Float?
+  issueDate     DateTime?
+  note          String?
+  comment       String?
+  dueDate       DateTime?
+  status        String
+  invoiceItems  InvoiceItem[]
+  createdAt     DateTime      @default(now())
 
-  @@unique([companyId, invoiceNumber ]) // ✅ Unicité du numéro par entreprise
+  @@unique([companyId, invoiceNumber]) // ✅ Unicité du numéro par entreprise
 }
 
 model InvoiceItem {
