@@ -1,4 +1,3 @@
-// --- stores/category-store.ts ---
 'use client';
 import { create } from 'zustand';
 import { Category, CreateCategoryPayload, UpdateCategoryPayload } from '@/types/category';
@@ -9,6 +8,7 @@ interface CategoryStore {
     loading: boolean;
     error: string | null;
     fetchCategories: (companyId: string) => Promise<void>;
+    fetchCategoriesByCompany: (companyId: string) => Promise<void>;
     createCategory: (data: CreateCategoryPayload) => Promise<void>;
     updateCategory: (data: UpdateCategoryPayload) => Promise<void>;
     deleteCategory: (id: string) => Promise<void>;
@@ -25,11 +25,17 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const res = await fetch(`/api/categories/company/${companyId}`);
+            if (!res.ok) throw new Error('Échec du chargement des catégories');
             const data = await res.json();
             set({ categories: data, loading: false });
         } catch (err: any) {
-            set({ error: err.message || 'Erreur chargement', loading: false });
+            set({ error: err.message || 'Erreur inconnue', loading: false });
+            throw err;
         }
+    },
+
+    async fetchCategoriesByCompany(companyId) {
+        return get().fetchCategories(companyId); // alias
     },
 
     async createCategory(data) {
@@ -39,11 +45,19 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
             });
-            if (!res.ok) throw new Error(await res.text());
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || 'Erreur lors de la création');
+            }
+
             const created = await res.json();
-            set((state) => ({ categories: [created, ...state.categories] }));
+            set((state) => ({
+                categories: [created, ...state.categories],
+            }));
         } catch (err: any) {
             set({ error: err.message });
+            throw err; // important
         }
     },
 
@@ -54,24 +68,39 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name }),
             });
-            if (!res.ok) throw new Error(await res.text());
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || 'Erreur lors de la mise à jour');
+            }
+
             const updated = await res.json();
             set((state) => ({
                 categories: state.categories.map((cat) => (cat.id === id ? updated : cat)),
             }));
         } catch (err: any) {
             set({ error: err.message });
+            throw err;
         }
     },
 
     async deleteCategory(id) {
         try {
-            await fetch(`/api/categories/${id}/delete`, { method: 'DELETE' });
+            const res = await fetch(`/api/categories/${id}/delete`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || 'Erreur lors de la suppression');
+            }
+
             set((state) => ({
                 categories: state.categories.filter((cat) => cat.id !== id),
             }));
         } catch (err: any) {
             set({ error: err.message });
+            throw err;
         }
     },
 
