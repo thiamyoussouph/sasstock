@@ -13,6 +13,8 @@ export interface Product {
     stockMin: number;
     mainImage?: string;
     createdAt: string;
+    quantity: number; // ✅ Ajouté
+    isActive: boolean; // ✅ Ajouté
     updatedAt: string;
 }
 

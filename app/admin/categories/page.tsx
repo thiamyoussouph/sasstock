@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useCategoryStore } from '@/stores/category-store';
 import { Loader2, Pencil } from 'lucide-react';
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 export default function AdminCategoryPage() {
     const { user } = useAuthStore();
     const companyId = user?.company.id;
@@ -64,30 +64,21 @@ export default function AdminCategoryPage() {
 
 
 
-    // const exportPDF = () => {
-    //     const doc: any = new jsPDF();
-    //     doc.text('Liste des catégories', 10, 10);
-    //     doc.autoTable({
-    //         head: [['Nom']],
-    //         body: filteredCategories.map((cat) => [cat.name]),
-    //     });
-    //     doc.save('categories.pdf');
-    // };
-
-    function exportToPDF() {
+    const exportPDF = () => {
         const doc = new jsPDF();
-        doc.text("Liste des tarifications", 14, 14);
-        const tableData = categories.map((c) => [
-            c.name
-        ]);
-        doc.autoTable({
-            startY: 20,
-            head: [['Nom']],
-            body: tableData,
-        });
-        doc.save('categories.pdf');
+        doc.text("Liste des Categories", 10, 10);
+        autoTable(doc, {
+            head: [["Nom"]],
+            body: categories.map((c) => [
+                c.name,
 
-    }
+            ]),
+        });
+        const date = new Date().toISOString().split('T')[0]; // format YYYY-MM-DD
+        doc.save(`Liste-categories-produit-${date}.pdf`);
+    };
+
+
 
     return (
         <div className='grid grid-cols-1 md:grid-cols-3 gap-6 p-6'>
@@ -100,7 +91,7 @@ export default function AdminCategoryPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className='w-1/2'
                     />
-                    <Button variant='outline' onClick={exportToPDF}>Exporter PDF</Button>
+                    <Button variant='outline' onClick={exportPDF}>Exporter PDF</Button>
                 </div>
 
                 <div className='bg-white shadow p-4 rounded'>

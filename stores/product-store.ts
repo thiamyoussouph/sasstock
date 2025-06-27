@@ -10,6 +10,7 @@ interface ProductStore {
     createProduct: (data: CreateProductPayload) => Promise<void>;
     updateProduct: (data: UpdateProductPayload) => Promise<void>;
     deleteProduct: (id: string) => Promise<void>;
+    toggleProductStatus: (id: string, isActive: boolean) => Promise<void>;
 }
 
 export const useProductStore = create<ProductStore>((set) => ({
@@ -65,6 +66,24 @@ export const useProductStore = create<ProductStore>((set) => ({
             await fetch(`/api/products/delete/${id}`, { method: 'DELETE' });
             set((state) => ({
                 products: state.products.filter((p) => p.id !== id),
+            }));
+        } catch (err: any) {
+            set({ error: err.message });
+        }
+    },
+
+    async toggleProductStatus(id, isActive) {
+        try {
+            const res = await fetch(`/api/products/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+
+            const updated = await res.json();
+            set((state) => ({
+                products: state.products.map((p) => (p.id === id ? updated : p)),
             }));
         } catch (err: any) {
             set({ error: err.message });
