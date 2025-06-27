@@ -46,7 +46,7 @@ export const useProductStore = create<ProductStore>((set) => ({
 
     async updateProduct({ id, ...data }) {
         try {
-            const res = await fetch(`/api/products/update/${id}`, {
+            const res = await fetch(`/api/products/${id}/update`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
