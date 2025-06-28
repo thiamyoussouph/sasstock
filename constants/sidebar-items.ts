@@ -5,12 +5,14 @@ import {
     Box,
     FileText,
     List,
-} from 'lucide-react'; // Pas besoin de ChevronLeft/ChevronRight ici
+    Users,
+} from 'lucide-react'; // Ajout de l'icône Users
 
 export const sidebarItems = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: Home },
     { label: 'Produits', href: '/admin/products', icon: Box },
-    { label: 'Catégories', href: '/admin/categories', icon: List }, // ✅ Ajouté ici
+    { label: 'Catégories', href: '/admin/categories', icon: List },
+    { label: 'Clients', href: '/admin/customers', icon: Users }, // ✅ Clients ajoutés ici
     { label: 'Utilisateurs', href: '/admin/users', icon: User },
     { label: 'Factures', href: '/admin/invoices', icon: FileText },
     { label: 'Paramètres', href: '/admin/settings', icon: Settings },
