@@ -9,10 +9,11 @@ datasource db {
 }
 
 enum StockType {
-  ENTRY
-  EXIT
-  LOSS
-  ADJUSTMENT
+  ENTREE // Entrée classique (livraison manuelle, don, retour client...)
+  REAPPROVISIONNEMENT // Approvisionnement suite à une commande fournisseur
+  SORTIE // Sortie manuelle (perte, vol, donation)
+  VENTE // Vente enregistrée (via facture)
+  INVENTAIRE // Ajustement stock lors d’un inventaire
 }
 
 enum PaymentType {
@@ -178,48 +179,64 @@ model Category {
   products  Product[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
   @@unique([companyId, name]) // ← Contrainte unique sur name pour chaque company
 }
 
 model Product {
-  id             String              @id @default(uuid())
-  companyId      String
-  company        Company             @relation(fields: [companyId], references: [id])
-  categoryId     String?
-  category       Category?           @relation(fields: [categoryId], references: [id])
-  tvaId          String?
-  tva            TVA?                @relation(fields: [tvaId], references: [id])
-  name           String
-  codeBar        String?             @unique
-  description    String?
-  price          Float // Prix de détail (par défaut)
-  priceHalf      Float? // Prix demi-gros (optionnel)
-  priceWholesale Float? // Prix gros (optionnel)
-  unit           String
-  stockMin       Int                 @default(0)
-  mainImage      String?
-  quantity       Int                 @default(0)
-  isActive       Boolean             @default(true)
-  stockMovements StockMovement[]
-  saleItems      SaleItem[]
-  orderItems     SupplierOrderItem[]
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  Discount       Discount[]
-  @@unique([companyId, name,codeBar]) // ← Contrainte unique sur name pour chaque company
+  id                String              @id @default(uuid())
+  companyId         String
+  company           Company             @relation(fields: [companyId], references: [id])
+  categoryId        String?
+  category          Category?           @relation(fields: [categoryId], references: [id])
+  tvaId             String?
+  tva               TVA?                @relation(fields: [tvaId], references: [id])
+  name              String
+  codeBar           String?             @unique
+  description       String?
+  purchasePrice     Float? // Prix d'achat
+  price             Float // Prix de détail (par défaut)
+  priceHalf         Float? // Prix demi-gros (optionnel)
+  priceWholesale    Float? // Prix gros (optionnel)
+  unit              String
+  stockMin          Int                 @default(0)
+  mainImage         String?
+  quantity          Int                 @default(0)
+  dateExpiration    DateTime?
+  isActive          Boolean             @default(true)
+  stockMovements    StockMovement[]
+  saleItems         SaleItem[]
+  orderItems        SupplierOrderItem[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  Discount          Discount[]
+  StockMovementItem StockMovementItem[]
+
+  @@unique([companyId, name, codeBar]) // ← Contrainte unique sur name pour chaque company
 }
 
 model StockMovement {
   id          String    @id @default(uuid())
   companyId   String
   company     Company   @relation(fields: [companyId], references: [id])
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id])
-  type        StockType
-  quantity    Int
+  type        StockType // entrée, sortie, ajustement, etc.
   description String?
   createdBy   String?
   createdAt   DateTime  @default(now())
+
+  items     StockMovementItem[] // ⇐ relation
+  Product   Product?            @relation(fields: [productId], references: [id])
+  productId String?
+}
+
+model StockMovementItem {
+  id              String        @id @default(uuid())
+  stockMovementId String
+  stockMovement   StockMovement @relation(fields: [stockMovementId], references: [id])
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  quantity        Int
+  purchasePrice   Float? // ← Prix d’achat unitaire
 }
 
 model Sale {
