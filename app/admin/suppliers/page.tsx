@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useCustomerStore } from '@/stores/customer-store';
+import { useSupplierStore } from '@/stores/supplier-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,16 +11,16 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Label } from '@/components/ui/label';
 
-export default function CustomerPage() {
+export default function SupplierPage() {
     const { user } = useAuthStore();
     const companyId = user?.company?.id ?? '';
 
     const {
-        customers,
-        fetchCustomers,
-        createCustomer,
-        updateCustomer,
-    } = useCustomerStore();
+        suppliers,
+        fetchSuppliers,
+        createSupplier,
+        updateSupplier,
+    } = useSupplierStore();
 
     const [search, setSearch] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -29,13 +29,12 @@ export default function CustomerPage() {
         phone: '',
         email: '',
         address: '',
-        creditLimit: '',
     });
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (companyId) {
-            fetchCustomers(companyId);
+            fetchSuppliers(companyId);
         }
     }, [companyId]);
 
@@ -52,66 +51,61 @@ export default function CustomerPage() {
                 phone: form.phone || undefined,
                 email: form.email || undefined,
                 address: form.address || undefined,
-                creditLimit: form.creditLimit ? parseFloat(form.creditLimit) : undefined,
                 companyId,
             };
 
             if (editingId) {
-                await updateCustomer(editingId, payload);
-                toast.success('Client mis à jour');
+                await updateSupplier(editingId, payload);
+                toast.success('Fournisseur mis à jour');
             } else {
-                await createCustomer(payload);
-                toast.success('Client créé');
+                await createSupplier(payload);
+                toast.success('Fournisseur créé');
             }
 
-            setForm({ name: '', phone: '', email: '', address: '', creditLimit: '' });
+            setForm({ name: '', phone: '', email: '', address: '' });
             setEditingId(null);
         } catch (e: any) {
-            toast.error(e.message || "Erreur lors de l’enregistrement");
+            toast.error(e.message || "Erreur lors de l'enregistrement");
         } finally {
             setLoading(false);
         }
     };
 
     const handleEdit = (id: string) => {
-        const client = customers.find(c => c.id === id);
-        if (!client) return;
+        const supplier = suppliers.find(s => s.id === id);
+        if (!supplier) return;
         setForm({
-            name: client.name,
-            phone: client.phone || '',
-            email: client.email || '',
-            address: client.address || '',
-            creditLimit: client.creditLimit?.toString() || '',
+            name: supplier.name,
+            phone: supplier.phone || '',
+            email: supplier.email || '',
+            address: supplier.address || '',
         });
         setEditingId(id);
     };
 
-    const filtered = customers.filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.phone?.includes(search)
+    const filtered = suppliers.filter(s =>
+        s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.phone?.includes(search)
     );
 
     const exportPDF = () => {
         const doc = new jsPDF();
-        doc.text('Liste des clients', 10, 10);
+        doc.text('Liste des fournisseurs', 10, 10);
         autoTable(doc, {
-            head: [['Nom', 'Téléphone', 'Email', 'Adresse', 'Crédit', 'Limite']],
-            body: filtered.map(c => [
-                c.name,
-                c.phone ?? '-',
-                c.email ?? '-',
-                c.address ?? '-',
-                `${c.credit.toFixed(2)} €`,
-                c.creditLimit?.toFixed(2) ?? '-',
+            head: [['Nom', 'Téléphone', 'Email', 'Adresse']],
+            body: filtered.map(s => [
+                s.name,
+                s.phone ?? '-',
+                s.email ?? '-',
+                s.address ?? '-',
             ]),
         });
-        const today = '2025-06-28';
-        doc.save(`clients-${today}.pdf`);
+        const today = new Date().toISOString().split('T')[0];
+        doc.save(`fournisseurs-${today}.pdf`);
     };
 
     return (
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Liste clients */}
             <div className="md:col-span-2 space-y-4 bg-white rounded shadow p-4">
                 <div className="flex items-center justify-between">
                     <Input
@@ -129,19 +123,19 @@ export default function CustomerPage() {
                             <th className="text-left p-2">Nom</th>
                             <th className="text-left p-2">Téléphone</th>
                             <th className="text-left p-2">Email</th>
-                            <th className="text-left p-2">Crédit</th>
+                            <th className="text-left p-2">Adresse</th>
                             <th className="text-left p-2">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.map(c => (
-                            <tr key={c.id} className="border-b">
-                                <td className="p-2">{c.name}</td>
-                                <td className="p-2">{c.phone ?? '-'}</td>
-                                <td className="p-2">{c.email ?? '-'}</td>
-                                <td className="p-2">{c.credit.toFixed(2)} €</td>
+                        {filtered.map(s => (
+                            <tr key={s.id} className="border-b">
+                                <td className="p-2">{s.name}</td>
+                                <td className="p-2">{s.phone ?? '-'}</td>
+                                <td className="p-2">{s.email ?? '-'}</td>
+                                <td className="p-2">{s.address ?? '-'}</td>
                                 <td className="p-2">
-                                    <Button size="sm" variant="ghost" onClick={() => handleEdit(c.id)}>
+                                    <Button size="sm" variant="ghost" onClick={() => handleEdit(s.id)}>
                                         <Pencil size={16} className="text-blue-500" />
                                     </Button>
                                 </td>
@@ -149,16 +143,15 @@ export default function CustomerPage() {
                         ))}
                         {filtered.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="text-center py-4 text-gray-400">Aucun client trouvé.</td>
+                                <td colSpan={5} className="text-center py-4 text-gray-400">Aucun fournisseur trouvé.</td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
 
-            {/* Formulaire */}
             <div className="space-y-4 bg-white p-4 shadow rounded">
-                <h2 className="text-lg font-semibold">{editingId ? 'Modifier le client' : 'Nouveau client'}</h2>
+                <h2 className="text-lg font-semibold">{editingId ? 'Modifier le fournisseur' : 'Nouveau fournisseur'}</h2>
 
                 <div className="space-y-2">
                     <Label className="block text-sm font-medium text-gray-700">Nom</Label>
