@@ -1,17 +1,24 @@
-import { CreateStockMovementPayload, StockMovement } from '@/types/stock-movements';
+'use client';
+
 import { create } from 'zustand';
+import { CreateStockMovementPayload, StockMovement, UpdateStockMovementPayload } from '@/types/stock-movements';
 
 interface StockMovementStore {
     movements: StockMovement[];
+    selectedMovement: StockMovement | null;
     loading: boolean;
     error: string | null;
     fetchMovements: (companyId: string) => Promise<void>;
     createMovement: (data: CreateStockMovementPayload) => Promise<void>;
+    updateMovement: (id: string, data: UpdateStockMovementPayload) => Promise<void>;
     deleteMovement: (id: string) => Promise<void>;
+    setSelectedMovement: (m: StockMovement | null) => void;
+    clearError: () => void;
 }
 
 export const useStockMovementStore = create<StockMovementStore>((set) => ({
     movements: [],
+    selectedMovement: null,
     loading: false,
     error: null,
 
@@ -33,9 +40,27 @@ export const useStockMovementStore = create<StockMovementStore>((set) => ({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
             });
-            if (!res.ok) throw new Error('Erreur lors de la création du mouvement');
+            if (!res.ok) throw new Error(await res.text());
             const newMovement = await res.json();
             set((state) => ({ movements: [newMovement, ...state.movements] }));
+        } catch (err: any) {
+            set({ error: err.message });
+        }
+    },
+
+    async updateMovement(id, data) {
+        try {
+            const res = await fetch(`/api/stock-movements/${id}/update`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const updated = await res.json();
+
+            set((state) => ({
+                movements: state.movements.map((m) => (m.id === id ? updated : m)),
+            }));
         } catch (err: any) {
             set({ error: err.message });
         }
@@ -44,9 +69,19 @@ export const useStockMovementStore = create<StockMovementStore>((set) => ({
     async deleteMovement(id) {
         try {
             await fetch(`/api/stock-movements/${id}/delete`, { method: 'DELETE' });
-            set((state) => ({ movements: state.movements.filter((m) => m.id !== id) }));
+            set((state) => ({
+                movements: state.movements.filter((m) => m.id !== id),
+            }));
         } catch (err: any) {
             set({ error: err.message });
         }
+    },
+
+    setSelectedMovement(movement) {
+        set({ selectedMovement: movement });
+    },
+
+    clearError() {
+        set({ error: null });
     },
 }));

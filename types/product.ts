@@ -15,6 +15,7 @@ export interface Product {
     createdAt: string;
     quantity: number; // ✅ Ajouté
     isActive: boolean; // ✅ Ajouté
+    purchasePrice?: number; // ✅ Ajouté
     updatedAt: string;
 }
 
