@@ -1,15 +1,21 @@
-// app/api/customers/company/[companyId]/route.ts
 import { prisma } from '@/lib/prisma';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(_: Request, { params }: { params: { companyId: string } }) {
+export async function GET(
+    req: NextRequest,
+    context: { params: { companyId: string } } // <✅ c’est bien ici que `params` est accessible
+) {
     try {
+        const { companyId } = context.params;
+
         const customers = await prisma.customer.findMany({
-            where: { companyId: params.companyId },
+            where: { companyId },
             orderBy: { createdAt: 'desc' },
         });
+
         return NextResponse.json(customers);
     } catch (error) {
+        console.error(error);
         return NextResponse.json({ message: 'Erreur serveur' }, { status: 500 });
     }
 }

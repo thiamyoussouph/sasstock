@@ -64,6 +64,12 @@ model Role {
   permissions RolePermission[]
 }
 
+enum SaleMode {
+  DETAIL
+  DEMI_GROS
+  GROS
+}
+
 model RolePermission {
   id           String     @id @default(uuid())
   roleId       String
@@ -242,6 +248,7 @@ model StockMovementItem {
 model Sale {
   id          String      @id @default(uuid())
   companyId   String
+  numberSale  String
   company     Company     @relation(fields: [companyId], references: [id])
   userId      String
   user        User        @relation(fields: [userId], references: [id])
@@ -250,12 +257,15 @@ model Sale {
   tvaId       String?
   tva         TVA?        @relation(fields: [tvaId], references: [id])
   total       Float
+  saleMode    SaleMode    @default(DETAIL)
   paymentType PaymentType
   status      String
   saleItems   SaleItem[]
   payments    Payment[]
   discounts   Discount[]
   createdAt   DateTime    @default(now())
+
+  @@unique([companyId, numberSale])
 }
 
 model SaleItem {
@@ -270,13 +280,15 @@ model SaleItem {
 }
 
 model Payment {
-  id     String      @id @default(uuid())
-  saleId String
-  sale   Sale        @relation(fields: [saleId], references: [id])
-  amount Float
-  method PaymentType
-  paidAt DateTime    @default(now())
-  note   String?
+  id            String      @id @default(uuid())
+  saleId        String
+  sale          Sale        @relation(fields: [saleId], references: [id])
+  amount        Float // Montant affecté à la vente
+  montantRecu   Float // 💰 Montant donné par le client
+  monnaieRendue Float // 💸 Monnaie rendue au client
+  method        PaymentType
+  paidAt        DateTime    @default(now())
+  note          String?
 }
 
 model Customer {

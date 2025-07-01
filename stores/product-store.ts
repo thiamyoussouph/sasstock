@@ -1,4 +1,5 @@
 'use client';
+
 import { create } from 'zustand';
 import { Product, CreateProductPayload, UpdateProductPayload } from '@/types/product';
 
@@ -11,9 +12,10 @@ interface ProductStore {
     updateProduct: (data: UpdateProductPayload) => Promise<void>;
     deleteProduct: (id: string) => Promise<void>;
     toggleProductStatus: (id: string, isActive: boolean) => Promise<void>;
+    getProductById: (id: string) => Product | undefined;
 }
 
-export const useProductStore = create<ProductStore>((set) => ({
+export const useProductStore = create<ProductStore>((set, get) => ({
     products: [],
     loading: false,
     error: null,
@@ -22,6 +24,7 @@ export const useProductStore = create<ProductStore>((set) => ({
         set({ loading: true, error: null });
         try {
             const res = await fetch(`/api/products/company/${companyId}`);
+            if (!res.ok) throw new Error(await res.text());
             const data = await res.json();
             set({ products: data, loading: false });
         } catch (err: any) {
@@ -63,7 +66,8 @@ export const useProductStore = create<ProductStore>((set) => ({
 
     async deleteProduct(id) {
         try {
-            await fetch(`/api/products/delete/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/products/delete/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await res.text());
             set((state) => ({
                 products: state.products.filter((p) => p.id !== id),
             }));
@@ -88,5 +92,9 @@ export const useProductStore = create<ProductStore>((set) => ({
         } catch (err: any) {
             set({ error: err.message });
         }
+    },
+
+    getProductById(id) {
+        return get().products.find((p) => p.id === id);
     },
 }));
