@@ -24,7 +24,13 @@ export default function ProductList() {
     const { user } = useAuthStore();
     const companyId = user?.company?.id ?? "";
 
-    const { products, fetchProducts, toggleProductStatus } = useProductStore();
+    const {
+        products,
+        fetchProducts,
+        toggleProductStatus,
+        totalPages,
+        page: currentPage,
+    } = useProductStore();
     const { categories, fetchCategories } = useCategoryStore();
 
     const [search, setSearch] = useState("");
@@ -33,21 +39,18 @@ export default function ProductList() {
         id: string;
         isActive: boolean;
     } | null>(null);
+    const [page, setPage] = useState(1);
 
     useEffect(() => {
         if (companyId) {
-            fetchProducts(companyId);
+            fetchProducts(companyId, {
+                page,
+                search,
+                categoryId: selectedCategory,
+            });
             fetchCategories(companyId);
         }
-    }, [companyId]);
-
-    const filteredProducts = products.filter((p) => {
-        const matchesName = p.name.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory = selectedCategory
-            ? p.categoryId === selectedCategory
-            : true;
-        return matchesName && matchesCategory;
-    });
+    }, [companyId, page, search, selectedCategory]);
 
     const exportPDF = () => {
         const doc = new jsPDF();
@@ -55,7 +58,7 @@ export default function ProductList() {
         doc.text("Liste des produits", 10, 10);
         autoTable(doc, {
             head: [["Nom", "Catégorie", "Prix", "Stock min", "Quantité"]],
-            body: filteredProducts.map((p) => [
+            body: products.map((p) => [
                 p.name,
                 categories.find((c) => c.id === p.categoryId)?.name ?? "",
                 `${p.price.toFixed(2)} €`,
@@ -87,12 +90,18 @@ export default function ProductList() {
                     <Input
                         placeholder="Recherche par nom..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            setPage(1);
+                        }}
                         className="w-full sm:w-1/3"
                     />
                     <select
                         value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        onChange={(e) => {
+                            setSelectedCategory(e.target.value);
+                            setPage(1);
+                        }}
                         className="border rounded px-3 py-2 text-sm"
                     >
                         <option value="">Toutes les catégories</option>
@@ -131,7 +140,7 @@ export default function ProductList() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredProducts.map((product) => (
+                            {products.map((product) => (
                                 <tr key={product.id} className="border-b">
                                     <td className="px-4 py-2">
                                         {product.mainImage ? (
@@ -148,7 +157,8 @@ export default function ProductList() {
                                     </td>
                                     <td className="px-4 py-2 font-medium">{product.name}</td>
                                     <td className="px-4 py-2">
-                                        {categories.find((c) => c.id === product.categoryId)?.name ?? ""}
+                                        {categories.find((c) => c.id === product.categoryId)?.name ??
+                                            ""}
                                     </td>
                                     <td className="px-4 py-2">{product.price.toFixed(2)} €</td>
                                     <td className="px-4 py-2">{product.stockMin}</td>
@@ -156,8 +166,8 @@ export default function ProductList() {
                                     <td className="px-4 py-2">
                                         <span
                                             className={`px-2 py-1 rounded text-xs ${product.isActive
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-red-100 text-red-700"
+                                                    ? "bg-green-100 text-green-700"
+                                                    : "bg-red-100 text-red-700"
                                                 }`}
                                         >
                                             {product.isActive ? "Actif" : "Inactif"}
@@ -168,7 +178,9 @@ export default function ProductList() {
                                             className="text-orange-500 hover:text-orange-700"
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => router.push(`/admin/products/${product.id}/edit`)}
+                                            onClick={() =>
+                                                router.push(`/admin/products/${product.id}/edit`)
+                                            }
                                         >
                                             Modifier
                                         </Button>
@@ -176,7 +188,10 @@ export default function ProductList() {
                                             size="sm"
                                             variant="secondary"
                                             onClick={() =>
-                                                setSelectedProduct({ id: product.id, isActive: product.isActive })
+                                                setSelectedProduct({
+                                                    id: product.id,
+                                                    isActive: product.isActive,
+                                                })
                                             }
                                         >
                                             {product.isActive ? "Désactiver" : "Activer"}
@@ -186,14 +201,35 @@ export default function ProductList() {
                             ))}
                         </tbody>
                     </table>
-                    {filteredProducts.length === 0 && (
-                        <p className="text-center text-gray-500 mt-4">Aucun produit trouvé.</p>
+                    {products.length === 0 && (
+                        <p className="text-center text-gray-500 mt-4">
+                            Aucun produit trouvé.
+                        </p>
                     )}
                 </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex justify-center mt-4 space-x-2">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                            <Button
+                                key={p}
+                                variant={p === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setPage(p)}
+                            >
+                                {p}
+                            </Button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Confirmation Dialog */}
-            <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
+            <Dialog
+                open={!!selectedProduct}
+                onOpenChange={() => setSelectedProduct(null)}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Confirmation</DialogTitle>

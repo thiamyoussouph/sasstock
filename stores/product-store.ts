@@ -5,28 +5,53 @@ import { Product, CreateProductPayload, UpdateProductPayload } from '@/types/pro
 
 interface ProductStore {
     products: Product[];
+    total: number;
+    page: number;
+    totalPages: number;
     loading: boolean;
     error: string | null;
-    fetchProducts: (companyId: string) => Promise<void>;
+
+    fetchProducts: (
+        companyId: string,
+        options?: { page?: number; search?: string; categoryId?: string }
+    ) => Promise<void>;
     createProduct: (data: CreateProductPayload) => Promise<void>;
     updateProduct: (data: UpdateProductPayload) => Promise<void>;
     deleteProduct: (id: string) => Promise<void>;
     toggleProductStatus: (id: string, isActive: boolean) => Promise<void>;
     getProductById: (id: string) => Product | undefined;
+    uploadProductFile: (file: File, companyId: string) => Promise<string[]>;
 }
 
 export const useProductStore = create<ProductStore>((set, get) => ({
     products: [],
+    total: 0,
+    page: 1,
+    totalPages: 1,
     loading: false,
     error: null,
 
-    async fetchProducts(companyId) {
+    async fetchProducts(companyId, options = {}) {
+        const { page = 1, search = '', categoryId = '' } = options;
         set({ loading: true, error: null });
+
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+        if (search) params.append('search', search);
+        if (categoryId) params.append('categoryId', categoryId);
+
         try {
-            const res = await fetch(`/api/products/company/${companyId}`);
+            const res = await fetch(`/api/products/company/${companyId}?${params.toString()}`);
             if (!res.ok) throw new Error(await res.text());
-            const data = await res.json();
-            set({ products: data, loading: false });
+
+            const result = await res.json(); // { data, total, page, totalPages }
+            set({
+                products: result.data,
+                total: result.total,
+                page: result.page,
+                totalPages: result.totalPages,
+                loading: false,
+            });
         } catch (err: any) {
             set({ error: err.message || 'Erreur chargement produits', loading: false });
         }
@@ -84,7 +109,6 @@ export const useProductStore = create<ProductStore>((set, get) => ({
                 body: JSON.stringify({ isActive }),
             });
             if (!res.ok) throw new Error(await res.text());
-
             const updated = await res.json();
             set((state) => ({
                 products: state.products.map((p) => (p.id === id ? updated : p)),
@@ -96,5 +120,26 @@ export const useProductStore = create<ProductStore>((set, get) => ({
 
     getProductById(id) {
         return get().products.find((p) => p.id === id);
+    },
+
+    async uploadProductFile(file, companyId) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('companyId', companyId);
+
+        try {
+            const res = await fetch('/api/products/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            if (!res.ok) throw new Error(await res.text());
+
+            const data = await res.json(); // { created, duplicates, newCategories }
+            await get().fetchProducts(companyId); // ✅ Rafraîchit après import
+            return data.duplicates || [];
+        } catch (err: any) {
+            set({ error: err.message || 'Erreur upload fichier' });
+            return [];
+        }
     },
 }));
