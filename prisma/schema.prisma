@@ -86,21 +86,6 @@ model UserPermission {
   permission   Permission @relation(fields: [permissionId], references: [id])
 }
 
-model Plan {
-  id             String    @id @default(uuid())
-  name           String    @unique
-  description    String?
-  pricePerMonth  Float?
-  maxUsers       Int?
-  maxProducts    Int?
-  maxSalesPerDay Int?
-  enableSync     Boolean   @default(false)
-  enableReports  Boolean   @default(false)
-  enableMultiPOS Boolean   @default(false)
-  enableExport   Boolean   @default(false)
-  companies      Company[]
-}
-
 model Company {
   id                String                @id @default(uuid())
   name              String
@@ -109,7 +94,6 @@ model Company {
   address           String?
   planId            String?
   plan              Plan?                 @relation(fields: [planId], references: [id])
-  subscription      Subscription?
   users             User[]
   products          Product[]
   categories        Category[]
@@ -134,18 +118,64 @@ model Company {
   updatedAt         DateTime              @updatedAt
   Quote             Quote[]
   Invoice           Invoice[]
+  subscriptions     Subscription[]
+}
+
+model Plan {
+  id            String  @id @default(uuid())
+  name          String
+  description   String?
+  pricePerMonth Float
+  features      Json?
+
+  maxUsers    Int @default(1)
+  maxProducts Int @default(100)
+  maxSales    Int @default(500)
+  maxInvoices Int @default(50)
+
+  createdAt     DateTime       @default(now())
+  subscriptions Subscription[]
+  Company       Company[]
 }
 
 model Subscription {
-  id              String    @id @default(uuid())
-  companyId       String    @unique
-  company         Company   @relation(fields: [companyId], references: [id])
-  status          String
-  startDate       DateTime
-  endDate         DateTime?
-  paymentProvider String
-  paymentRef      String?
-  createdAt       DateTime  @default(now())
+  id            String             @id @default(uuid())
+  companyId     String
+  planId        String? // ✅ rendre optionnel
+  startDate     DateTime
+  endDate       DateTime
+  status        SubscriptionStatus
+  paymentStatus PaymentStatus      @default(PAID)
+  createdAt     DateTime           @default(now())
+
+  company  Company               @relation(fields: [companyId], references: [id])
+  plan     Plan?                 @relation(fields: [planId], references: [id])
+  payments SubscriptionPayment[]
+}
+
+model SubscriptionPayment {
+  id             String        @id @default(uuid())
+  subscriptionId String
+  amount         Float
+  paymentMethod  String
+  status         PaymentStatus
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
+  FAILED
 }
 
 model TVA {

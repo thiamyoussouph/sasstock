@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useCompanyStore } from '@/stores/company-store';
+import { usePlanStore } from '@/stores/plan-store';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,12 @@ export default function CompanyPage() {
         error,
     } = useCompanyStore();
 
+    const {
+        plans,
+        fetchPlans,
+        loading: loadingPlans,
+    } = usePlanStore();
+
     const [form, setForm] = useState<Partial<Company>>({});
     const [editingId, setEditingId] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
@@ -28,6 +35,10 @@ export default function CompanyPage() {
     useEffect(() => {
         fetchCompanies(page);
     }, [page]);
+
+    useEffect(() => {
+        fetchPlans();
+    }, []);
 
     const handleChange = (key: keyof Company, value: any) => {
         setForm({ ...form, [key]: value });
@@ -96,7 +107,7 @@ export default function CompanyPage() {
                         <tr className="bg-gray-100 dark:bg-gray-800">
                             <th className="p-2 text-left">Nom</th>
                             <th className="p-2 text-left">Email</th>
-                            <th className="p-2 text-left">Telephone</th>
+                            <th className="p-2 text-left">Téléphone</th>
                             <th className="p-2 text-left">Plan</th>
                             <th className="p-2 text-left">Actions</th>
                         </tr>
@@ -114,13 +125,11 @@ export default function CompanyPage() {
                                     <td className="p-2">
                                         {company.plan?.name || <span className="text-gray-400">N/A</span>}
                                     </td>
-                                    <td className="p-2">
-                                        <Button className='bg-yellow-400 hover:bg-yellow-500' size="sm" onClick={() => handleEdit(company)}>
+                                    <td className="p-2 space-x-2">
+                                        <Button className="bg-yellow-400 hover:bg-yellow-500" size="sm" onClick={() => handleEdit(company)}>
                                             Modifier
                                         </Button>
-                                    </td>
-                                    <td className="p-2">
-                                        <Button className='bg-green-500 hover:bg-green-600' size="sm" onClick={() => handleEdit(company)}>
+                                        <Button className="bg-green-500 hover:bg-green-600" size="sm">
                                             Abonnement
                                         </Button>
                                     </td>
@@ -128,7 +137,7 @@ export default function CompanyPage() {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={4} className="p-2 text-center text-gray-500">
+                                <td colSpan={5} className="p-2 text-center text-gray-500">
                                     Aucune entreprise trouvée.
                                 </td>
                             </tr>
@@ -195,11 +204,23 @@ export default function CompanyPage() {
                         />
                     </div>
                     <div>
-                        <Label>Plan ID</Label>
-                        <Input
+                        <Label>Plan *</Label>
+                        <select
+                            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
                             value={form.planId || ''}
                             onChange={(e) => handleChange('planId', e.target.value)}
-                        />
+                        >
+                            <option value="">Sélectionner un plan</option>
+                            {loadingPlans ? (
+                                <option disabled>Chargement...</option>
+                            ) : (
+                                plans.map((plan) => (
+                                    <option key={plan.id} value={plan.id}>
+                                        {plan.name}
+                                    </option>
+                                ))
+                            )}
+                        </select>
                     </div>
 
                     <Button onClick={handleSubmit} disabled={submitting} className="w-full mt-2">
