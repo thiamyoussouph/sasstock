@@ -16,3 +16,6 @@ export const updateUserSchema = z.object({
     roleId: z.string().uuid().optional(),
     status: z.boolean().optional(),
 });
+
+
+

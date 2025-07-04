@@ -19,10 +19,11 @@ interface SaleStore {
     }) => Promise<void>;
 
     getSaleById: (id: string) => Promise<void>;
-    createSale: (data: CreateSalePayload) => Promise<void>;
+    createSale: (data: CreateSalePayload) => Promise<Sale>;
     updateSale: (id: string, data: UpdateSalePayload) => Promise<void>;
     deleteSale: (id: string) => Promise<void>;
     clearSelectedSale: () => void;
+    getNextSaleNumber: (companyId: string) => Promise<string | null>;
 }
 
 export const useSaleStore = create<SaleStore>((set) => ({
@@ -64,25 +65,27 @@ export const useSaleStore = create<SaleStore>((set) => ({
         }
     },
 
-    async createSale(data) {
+    async createSale(data: CreateSalePayload): Promise<Sale> {
         try {
             const res = await fetch('/api/sales/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
             });
+
             if (!res.ok) throw new Error(await res.text());
-            const created = await res.json();
+
+            const created: Sale = await res.json();
             set((state) => ({ sales: [created, ...state.sales] }));
+            return created;
         } catch (err: any) {
             set({ error: err.message || 'Erreur création vente' });
+            throw err;
         }
     },
 
     async updateSale(id: string, data: UpdateSalePayload) {
         try {
-            console.log(`Updating sale ${id} with data:`, data);
-
             const res = await fetch(`/api/sales/${id}/update`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -95,7 +98,6 @@ export const useSaleStore = create<SaleStore>((set) => ({
 
             if (!res.ok) {
                 const errText = await res.text();
-                console.error('Erreur API:', errText);
                 throw new Error(errText);
             }
 
@@ -108,7 +110,6 @@ export const useSaleStore = create<SaleStore>((set) => ({
         }
     },
 
-
     async deleteSale(id) {
         try {
             const res = await fetch(`/api/sales/${id}/delete`, { method: 'DELETE' });
@@ -118,6 +119,18 @@ export const useSaleStore = create<SaleStore>((set) => ({
             }));
         } catch (err: any) {
             set({ error: err.message || 'Erreur suppression vente' });
+        }
+    },
+
+    async getNextSaleNumber(companyId: string) {
+        try {
+            const res = await fetch(`/api/sales/company/${companyId}/next-number`);
+            if (!res.ok) throw new Error(await res.text());
+            const { number } = await res.json();
+            return number;
+        } catch (err: any) {
+            set({ error: err.message || 'Erreur récupération numéro vente' });
+            return null;
         }
     },
 

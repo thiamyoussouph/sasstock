@@ -13,7 +13,7 @@ interface ProductStore {
 
     fetchProducts: (
         companyId: string,
-        options?: { page?: number; search?: string; categoryId?: string }
+        options?: { page?: number; search?: string; categoryId?: string, limit?: number; }
     ) => Promise<void>;
     createProduct: (data: CreateProductPayload) => Promise<void>;
     updateProduct: (data: UpdateProductPayload) => Promise<void>;
@@ -32,11 +32,18 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     error: null,
 
     async fetchProducts(companyId, options = {}) {
-        const { page = 1, search = '', categoryId = '' } = options;
+        const {
+            page = 1,
+            search = '',
+            categoryId = '',
+            limit = 15, // ✅ Par défaut
+        } = options;
+
         set({ loading: true, error: null });
 
         const params = new URLSearchParams();
         params.append('page', page.toString());
+        params.append('limit', limit.toString());
         if (search) params.append('search', search);
         if (categoryId) params.append('categoryId', categoryId);
 

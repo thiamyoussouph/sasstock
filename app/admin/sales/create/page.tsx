@@ -5,7 +5,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useProductStore } from '@/stores/product-store';
@@ -15,6 +14,7 @@ import { useSaleStore } from '@/stores/sale-store';
 import { toast } from 'react-toastify';
 import ProductSearchSelect from '@/components/product/SelectSearchProduit';
 import { Trash2 } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
 
 export default function CreateSalePage() {
     const router = useRouter();
@@ -26,6 +26,7 @@ export default function CreateSalePage() {
     const { customers, fetchCustomers } = useCustomerStore();
     const { createSale } = useSaleStore();
 
+    const invoiceRef = useRef<HTMLDivElement>(null);
     const codeBarInputRef = useRef<HTMLInputElement>(null);
     const [scannedCode, setScannedCode] = useState('');
 
@@ -35,10 +36,109 @@ export default function CreateSalePage() {
     const [saleMode, setSaleMode] = useState<'DETAIL' | 'DEMI_GROS' | 'GROS'>('DETAIL');
 
     const [priceError, setPriceError] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [saleNumber, setSaleNumber] = useState<string | null>(null);
+
+    const handlePrint = useReactToPrint({
+        contentRef: invoiceRef,
+        documentTitle: `Ticket-${saleNumber || 'recu'}`,
+        pageStyle: `
+            @page {
+                size: A4;
+                margin: 20mm;
+            }
+            @media print {
+                * {
+                    font-family: Arial, sans-serif !important;
+                    color: #000 !important;
+                }
+                
+                body {
+                    font-size: 12px;
+                    line-height: 1.4;
+                    margin: 0;
+                    padding: 0;
+                }
+                
+                /* Container styles pour l'impression */
+                div[class*="bg-white"] {
+                    background: white !important;
+                    box-shadow: none !important;
+                    border-radius: 0 !important;
+                    padding: 20px !important;
+                }
+                
+                /* Header section */
+                div[class*="flex justify-between"]:first-child {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    margin-bottom: 20px !important;
+                }
+                
+                /* Client and payment section */
+                div[class*="mt-4 flex justify-between"] {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    margin: 20px 0 !important;
+                }
+                
+                /* Table styles */
+                table {
+                    width: 100% !important;
+                    border-collapse: collapse !important;
+                    margin: 20px 0 !important;
+                    font-size: 11px !important;
+                }
+                
+                table th,
+                table td {
+                    border: 1px solid #000 !important;
+                    padding: 8px !important;
+                }
+                
+                table th {
+                    background-color: #f0f0f0 !important;
+                    font-weight: bold !important;
+                }
+                
+                /* Utility classes */
+                .text-right {
+                    text-align: right !important;
+                }
+                
+                .text-center {
+                    text-align: center !important;
+                }
+                
+                .font-bold {
+                    font-weight: bold !important;
+                }
+                
+                .capitalize {
+                    text-transform: capitalize !important;
+                }
+                
+                /* Totals section */
+                div[class*="mt-4 text-right"] {
+                    text-align: right !important;
+                    margin-top: 20px !important;
+                }
+                
+                /* Footer message */
+                p[class*="text-center mt-6"] {
+                    text-align: center !important;
+                    margin-top: 30px !important;
+                    font-size: 10px !important;
+                    color: #666 !important;
+                }
+            }
+        `,
+    });
+
 
     useEffect(() => {
         if (companyId) {
-            fetchProducts(companyId);
+            fetchProducts(companyId, { limit: 100, page: 1 });
             fetchCustomers(companyId);
         }
     }, [companyId]);
@@ -102,8 +202,11 @@ export default function CreateSalePage() {
     const total = items.reduce((acc, i) => acc + i.total, 0);
 
     const handleSubmit = async () => {
+        if (!items.length) return toast.error("Veuillez ajouter au moins un produit.");
+        setSubmitting(true);
+
         try {
-            await createSale({
+            const payload = {
                 companyId,
                 userId,
                 customerId: customerId || undefined,
@@ -123,12 +226,25 @@ export default function CreateSalePage() {
                     monnaieRendue: 0,
                     method: paymentType,
                 }],
-            });
+            };
 
+            const res = await createSale(payload);
             toast.success('Vente enregistrée');
-            router.push('/admin/sales');
+            setSaleNumber(res.numberSale || null);
+
+            setTimeout(() => {
+                handlePrint?.();
+            }, 300);
+
+            setTimeout(() => {
+                router.push('/admin/sales');
+            }, 1000);
+
         } catch (err: any) {
-            toast.error(err.message || 'Erreur de création');
+            console.error('Erreur lors de la création de la vente :', err);
+            toast.error(err.message || 'Erreur serveur');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -193,7 +309,6 @@ export default function CreateSalePage() {
                         />
                     </div>
                     <div>
-                        <Label>Sélection produit</Label>
                         <ProductSearchSelect
                             products={products}
                             onSelect={(id) => {
@@ -250,42 +365,43 @@ export default function CreateSalePage() {
                 <Button
                     className="mt-4 bg-blue-600 hover:bg-blue-700"
                     onClick={handleSubmit}
-                    disabled={priceError || items.length === 0}
+                    disabled={submitting || priceError || items.length === 0}
                 >
-                    Enregistrer
+                    {submitting ? 'Enregistrement...' : 'Enregistrer'}
                 </Button>
             </div>
-
             {/* Ticket de caisse */}
-            <div className="bg-white border rounded p-4 print:w-full">
-                <h2 className="text-lg font-semibold border-b pb-2 mb-2">Ticket de caisse</h2>
-                <p className="text-sm">Entreprise : {user?.company?.name}</p>
-                <p className="text-sm">Caissier : {user?.name}</p>
-                <p className="text-sm mb-4">Date : {new Date().toLocaleString()}</p>
+            <div ref={invoiceRef} className="bg-white border rounded p-4 print:w-full">
+                <div className="bg-white border rounded p-4 print:w-full">
+                    <h2 className="text-lg font-semibold border-b pb-2 mb-2">Ticket de caisse: {saleNumber}</h2>
+                    <p className="text-sm">Entreprise : {user?.company?.name}</p>
+                    <p className="text-sm">Caissier : {user?.name}</p>
+                    <p className="text-sm mb-4">Date : {new Date().toLocaleString()}</p>
 
-                <table className="w-full text-sm">
-                    <thead className="border-b">
-                        <tr>
-                            <th className="text-left py-1">Produit</th>
-                            <th className="text-right py-1">Qté</th>
-                            <th className="text-right py-1">PU</th>
-                            <th className="text-right py-1">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((item, idx) => (
-                            <tr key={idx}>
-                                <td>{item.name}</td>
-                                <td className="text-right">{item.quantity}</td>
-                                <td className="text-right">{item.unitPrice.toFixed(2)}</td>
-                                <td className="text-right">{item.total.toFixed(2)}</td>
+                    <table className="w-full text-sm">
+                        <thead className="border-b">
+                            <tr>
+                                <th className="text-left py-1">Produit</th>
+                                <th className="text-right py-1">Qté</th>
+                                <th className="text-right py-1">PU</th>
+                                <th className="text-right py-1">Total</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <hr className="my-2" />
-                <p className="text-right font-semibold">Total à payer : {total.toFixed(2)} €</p>
-                <p className="text-center mt-4 text-xs text-gray-500">Merci pour votre achat !</p>
+                        </thead>
+                        <tbody>
+                            {items.map((item, idx) => (
+                                <tr key={idx}>
+                                    <td>{item.name}</td>
+                                    <td className="text-right">{item.quantity}</td>
+                                    <td className="text-right">{item.unitPrice.toFixed(2)}</td>
+                                    <td className="text-right">{item.total.toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <hr className="my-2" />
+                    <p className="text-right font-semibold">Total à payer : {total.toFixed(2)} €</p>
+                    <p className="text-center mt-4 text-xs text-gray-500">Merci pour votre achat !</p>
+                </div>
             </div>
         </div>
     );

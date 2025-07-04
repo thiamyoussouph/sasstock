@@ -10,10 +10,10 @@ export async function GET(
         const { searchParams } = new URL(req.url);
 
         const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '15', 10); // ✅ dynamique
         const search = searchParams.get('search')?.toLowerCase() || '';
         const categoryId = searchParams.get('categoryId') || '';
 
-        const limit = 15;
         const skip = (page - 1) * limit;
 
         const whereClause: any = {
@@ -23,7 +23,7 @@ export async function GET(
         if (search) {
             whereClause.name = {
                 contains: search,
-                mode: 'insensitive', // ✅ Fix: supporte les recherches sans sensibilité à la casse
+                mode: 'insensitive',
             };
         }
 
@@ -39,15 +39,14 @@ export async function GET(
                 take: limit,
                 orderBy: { createdAt: 'desc' },
             }),
-            prisma.product.count({
-                where: whereClause,
-            }),
+            prisma.product.count({ where: whereClause }),
         ]);
 
         return NextResponse.json({
             data: products,
             total,
             page,
+            limit,
             totalPages: Math.ceil(total / limit),
         });
     } catch (error) {
