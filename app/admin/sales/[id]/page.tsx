@@ -22,7 +22,7 @@ export default function SaleDetailPage() {
         if (id) {
             getSaleById(id as string).finally(() => setLoading(false));
         }
-    }, [id]);
+    }, [id,getSaleById]);
 
     const handlePrint = useReactToPrint({
         contentRef: invoiceRef,

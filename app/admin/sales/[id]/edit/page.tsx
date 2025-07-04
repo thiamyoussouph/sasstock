@@ -12,6 +12,17 @@ import { useSaleStore } from '@/stores/sale-store';
 import { toast } from 'react-toastify';
 import ProductSearchSelect from '@/components/product/SelectSearchProduit';
 import { Trash2 } from 'lucide-react';
+import { Product } from '@/types/product';
+import { Customer } from '@/types/customer';
+import { SaleItem } from '@/types/sale';
+
+interface CartItem {
+    productId: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+}
 
 export default function EditSalePage() {
     const router = useRouter();
@@ -24,7 +35,7 @@ export default function EditSalePage() {
     const { customers, fetchCustomers } = useCustomerStore();
     const { selectedSale, getSaleById, updateSale } = useSaleStore();
 
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<CartItem[]>([]);
     const [customerId, setCustomerId] = useState('');
     const [paymentType, setPaymentType] = useState<'CASH' | 'MOBILE_MONEY' | 'CARD'>('CASH');
     const [saleMode, setSaleMode] = useState<'DETAIL' | 'DEMI_GROS' | 'GROS'>('DETAIL');
@@ -40,15 +51,16 @@ export default function EditSalePage() {
             fetchCustomers(companyId);
             getSaleById(id as string);
         }
-    }, [companyId, id]);
+    }, [companyId, id, fetchCustomers, fetchProducts, getSaleById]);
 
     useEffect(() => {
         if (selectedSale && products.length > 0) {
             setCustomerId(selectedSale.customerId || '');
             setPaymentType(selectedSale.paymentType);
             setSaleMode(selectedSale.saleMode);
-            const mappedItems = selectedSale.saleItems?.map((item) => {
-                const prod = products.find(p => p.id === item.productId);
+
+            const mappedItems: CartItem[] = selectedSale.saleItems?.map((item: SaleItem) => {
+                const prod = products.find((p) => p.id === item.productId);
                 return {
                     productId: item.productId,
                     name: prod?.name || 'Produit',
@@ -57,6 +69,7 @@ export default function EditSalePage() {
                     total: item.total,
                 };
             }) || [];
+
             setItems(mappedItems);
         }
     }, [selectedSale, products]);
@@ -67,7 +80,7 @@ export default function EditSalePage() {
     }, []);
 
     const handleScanCodeBar = () => {
-        const found = products.find(p => p.codeBar === scannedCode.trim());
+        const found = products.find((p) => p.codeBar === scannedCode.trim());
         if (!found) {
             toast.error('Produit non trouvé.');
         } else {
@@ -77,45 +90,55 @@ export default function EditSalePage() {
         codeBarInputRef.current?.focus();
     };
 
-    const handleAddProduct = (product: any) => {
-        let price = saleMode === 'GROS' ? product.priceWholesale : saleMode === 'DEMI_GROS' ? product.priceHalf : product.price;
+    const handleAddProduct = (product: Product) => {
+        const price =
+            saleMode === 'GROS'
+                ? product.priceWholesale
+                : saleMode === 'DEMI_GROS'
+                    ? product.priceHalf
+                    : product.price;
 
         if (price == null) {
             toast.error(`Ce produit n'a pas de prix pour le mode de vente : ${saleMode}`);
             setPriceError(true);
             return;
-        } else {
-            setPriceError(false);
         }
 
-        const exists = items.find(i => i.productId === product.id);
+        setPriceError(false);
+
+        const exists = items.find((i) => i.productId === product.id);
         if (exists) {
-            setItems(items.map(i =>
-                i.productId === product.id
-                    ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice }
-                    : i
-            ));
+            setItems(
+                items.map((i) =>
+                    i.productId === product.id
+                        ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice }
+                        : i
+                )
+            );
         } else {
-            setItems([...items, {
-                productId: product.id,
-                name: product.name,
-                quantity: 1,
-                unitPrice: price,
-                total: price,
-            }]);
+            setItems([
+                ...items,
+                {
+                    productId: product.id,
+                    name: product.name,
+                    quantity: 1,
+                    unitPrice: price,
+                    total: price,
+                },
+            ]);
         }
     };
 
     const handleRemoveProduct = (id: string) => {
-        setItems(items.filter(i => i.productId !== id));
+        setItems(items.filter((i) => i.productId !== id));
     };
 
     const handleQuantityChange = (id: string, qty: number) => {
-        setItems(items.map(i =>
-            i.productId === id
-                ? { ...i, quantity: qty, total: qty * i.unitPrice }
-                : i
-        ));
+        setItems(
+            items.map((i) =>
+                i.productId === id ? { ...i, quantity: qty, total: qty * i.unitPrice } : i
+            )
+        );
     };
 
     const total = items.reduce((acc, i) => acc + i.total, 0);
@@ -131,19 +154,20 @@ export default function EditSalePage() {
                 saleMode,
                 status: 'CONFIRMED',
                 total,
-                saleItems: items.map(i => ({
+                saleItems: items.map((i) => ({
                     productId: i.productId,
                     quantity: i.quantity,
                     unitPrice: i.unitPrice,
                     total: i.total,
                 })),
-                payments: [], // Ajouté ici pour éviter les erreurs backend si exigé
+                payments: [],
             });
 
             toast.success('Vente mise à jour');
             router.push('/admin/sales');
-        } catch (err: any) {
-            toast.error(err.message || 'Erreur de mise à jour');
+        } catch (err) {
+            const error = err as Error;
+            toast.error(error.message || 'Erreur de mise à jour');
         }
     };
 
@@ -154,22 +178,34 @@ export default function EditSalePage() {
             <div className="md:col-span-2 space-y-4">
                 <div className="flex justify-between items-center">
                     <h1 className="text-xl font-semibold">Modifier la vente</h1>
-                    <Button variant="outline" onClick={() => router.push('/admin/sales')}>Retour</Button>
+                    <Button variant="outline" onClick={() => router.push('/admin/sales')}>
+                        Retour
+                    </Button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <Label>Client</Label>
-                        <select className="w-full border px-3 py-2 rounded" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+                        <select
+                            className="w-full border px-3 py-2 rounded"
+                            value={customerId}
+                            onChange={(e) => setCustomerId(e.target.value)}
+                        >
                             <option value="">Client passager</option>
-                            {customers.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                            {customers.map((c: Customer) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
                             ))}
                         </select>
                     </div>
                     <div>
                         <Label>Mode de vente</Label>
-                        <select className="w-full border px-3 py-2 rounded" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
+                        <select
+                            className="w-full border px-3 py-2 rounded"
+                            value={saleMode}
+                            onChange={(e) => setSaleMode(e.target.value as 'DETAIL' | 'DEMI_GROS' | 'GROS')}
+                        >
                             <option value="DETAIL">Détail</option>
                             <option value="DEMI_GROS">Demi-gros</option>
                             <option value="GROS">Gros</option>
@@ -180,7 +216,11 @@ export default function EditSalePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <Label>Paiement</Label>
-                        <select className="w-full border px-3 py-2 rounded" value={paymentType} onChange={(e) => setPaymentType(e.target.value as any)}>
+                        <select
+                            className="w-full border px-3 py-2 rounded"
+                            value={paymentType}
+                            onChange={(e) => setPaymentType(e.target.value as 'CASH' | 'MOBILE_MONEY' | 'CARD')}
+                        >
                             <option value="CASH">Espèces</option>
                             <option value="MOBILE_MONEY">Mobile Money</option>
                             <option value="CARD">Carte</option>
@@ -203,7 +243,7 @@ export default function EditSalePage() {
                         <ProductSearchSelect
                             products={products}
                             onSelect={(id) => {
-                                const found = products.find(p => p.id === id);
+                                const found = products.find((p) => p.id === id);
                                 if (found) handleAddProduct(found);
                             }}
                         />
@@ -211,7 +251,9 @@ export default function EditSalePage() {
                 </div>
 
                 {priceError && (
-                    <p className="text-red-500 text-sm mb-2">Un ou plusieurs produits ne disposent pas du prix pour le mode de vente choisi.</p>
+                    <p className="text-red-500 text-sm mb-2">
+                        Un ou plusieurs produits ne disposent pas du prix pour le mode de vente choisi.
+                    </p>
                 )}
 
                 {items.length > 0 && (
@@ -234,14 +276,20 @@ export default function EditSalePage() {
                                             <Input
                                                 type="number"
                                                 value={item.quantity}
-                                                onChange={(e) => handleQuantityChange(item.productId, Number(e.target.value))}
+                                                onChange={(e) =>
+                                                    handleQuantityChange(item.productId, Number(e.target.value))
+                                                }
                                                 className="w-20 text-right"
                                             />
                                         </td>
                                         <td className="p-2 text-right">{item.unitPrice.toFixed(2)}</td>
                                         <td className="p-2 text-right">{item.total.toFixed(2)}</td>
                                         <td className="p-2 text-center">
-                                            <Button size="icon" variant="ghost" onClick={() => handleRemoveProduct(item.productId)}>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                onClick={() => handleRemoveProduct(item.productId)}
+                                            >
                                                 <Trash2 className="w-4 h-4 text-red-500" />
                                             </Button>
                                         </td>
@@ -262,7 +310,6 @@ export default function EditSalePage() {
                 </Button>
             </div>
 
-            {/* Ticket de caisse */}
             <div className="bg-white border rounded p-4">
                 <h2 className="text-lg font-semibold border-b pb-2 mb-2">Ticket de caisse</h2>
                 <p className="text-sm">Entreprise : {user?.company?.name}</p>
