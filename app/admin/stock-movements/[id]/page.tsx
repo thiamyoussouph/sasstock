@@ -10,6 +10,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useReactToPrint } from 'react-to-print';
 import { ArrowLeft, Printer, Download } from 'lucide-react';
+import { StockMovement, StockMovementItem } from '@/types/stock-movements';
+import { Product } from '@/types/product';
 
 export default function StockMovementDetailPage() {
     const { id } = useParams();
@@ -17,7 +19,7 @@ export default function StockMovementDetailPage() {
     const { movements } = useStockMovementStore();
     const { products, fetchProducts } = useProductStore();
 
-    const [movement, setMovement] = useState<any>(null);
+    const [movement, setMovement] = useState<StockMovement | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
 
     const handlePrint = useReactToPrint({
@@ -58,8 +60,8 @@ export default function StockMovementDetailPage() {
         autoTable(doc, {
             startY: 42,
             head: [['Produit', 'Quantité', 'Prix d’achat']],
-            body: movement.items.map((item: any) => {
-                const product = products.find((p) => p.id === item.productId);
+            body: movement.items.map((item: StockMovementItem) => {
+                const product = products.find((p: Product) => p.id === item.productId);
                 return [
                     product?.name || 'Produit supprimé',
                     item.quantity.toString(),
@@ -120,12 +122,12 @@ export default function StockMovementDetailPage() {
                         <tr>
                             <th className="border px-3 py-2 text-left">Produit</th>
                             <th className="border px-3 py-2 text-right">Quantité</th>
-                            <th className="border px-3 py-2 text-right">Prix d'achat</th>
+                            <th className="border px-3 py-2 text-right">Prix d’achat</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {movement.items.map((item: any) => {
-                            const product = products.find(p => p.id === item.productId);
+                        {movement.items.map((item: StockMovementItem) => {
+                            const product = products.find((p: Product) => p.id === item.productId);
                             return (
                                 <tr key={item.id} className="hover:bg-gray-50">
                                     <td className="border px-3 py-2">{product?.name || 'Produit supprimé'}</td>

@@ -21,7 +21,7 @@ export default function StockMovementList() {
 
     useEffect(() => {
         if (companyId) fetchMovements(companyId);
-    }, [companyId]);
+    }, [companyId,fetchMovements]);
 
     const filteredMovements = movements.filter((m) => {
         const date = new Date(m.createdAt);

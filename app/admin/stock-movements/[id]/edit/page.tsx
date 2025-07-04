@@ -11,6 +11,14 @@ import { toast } from 'react-toastify';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import ProductSearchSelect from '@/components/product/SelectSearchProduit';
 import { StockMovementType } from '@/types/stock-movements';
+import { Product } from '@/types/product';
+
+interface MovementItem {
+    productId: string;
+    name: string;
+    quantity: number;
+    purchasePrice: number;
+}
 
 export default function EditStockMovement() {
     const router = useRouter();
@@ -24,8 +32,7 @@ export default function EditStockMovement() {
 
     const [description, setDescription] = useState('');
     const [type, setType] = useState<StockMovementType>('ENTREE');
-
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<MovementItem[]>([]);
     const [scannedCode, setScannedCode] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -34,7 +41,7 @@ export default function EditStockMovement() {
             fetchProducts(companyId);
             fetchMovements(companyId);
         }
-    }, [companyId]);
+    }, [companyId, fetchProducts, fetchMovements]);
 
     useEffect(() => {
         const movement = movements.find((m) => m.id === id);
@@ -54,8 +61,7 @@ export default function EditStockMovement() {
         }
     }, [movements, id, products]);
 
-    const handleAddProduct = (product: any) => {
-        if (!product) return;
+    const handleAddProduct = (product: Product) => {
         const exists = items.find((i) => i.productId === product.id);
         if (exists) {
             setItems(items.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i));
@@ -72,6 +78,7 @@ export default function EditStockMovement() {
     const handleScanCodeBar = () => {
         const found = products.find(p => p.codeBar === scannedCode);
         if (found) handleAddProduct(found);
+        else toast.error('Produit non trouvé.');
         setScannedCode('');
     };
 
@@ -96,8 +103,8 @@ export default function EditStockMovement() {
             });
             toast.success('Mouvement modifié avec succès');
             router.push('/admin/stock-movements');
-        } catch (e: any) {
-            toast.error(e.message || 'Erreur modification');
+        } catch (e) {
+            toast.error((e as Error).message || 'Erreur modification');
         } finally {
             setLoading(false);
         }
@@ -107,22 +114,17 @@ export default function EditStockMovement() {
         <div className="p-6 max-w-4xl mx-auto bg-white shadow rounded space-y-4">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-semibold">Modifier le mouvement de stock</h1>
-
-                <Button
-                    variant="outline"
-                    className="flex items-center gap-2"
-                    onClick={() => router.push('/admin/stock-movements')}
-                >
-                    <ArrowLeft size={16} />
-                    Retour à la liste
+                <Button variant="outline" className="flex items-center gap-2" onClick={() => router.push('/admin/stock-movements')}>
+                    <ArrowLeft size={16} /> Retour à la liste
                 </Button>
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="text-sm font-medium">Type *</label>
                     <select
                         value={type}
-                        onChange={(e) => setType(e.target.value as 'ENTREE' | 'SORTIE')}
+                        onChange={(e) => setType(e.target.value as StockMovementType)}
                         className="w-full border rounded px-3 py-2"
                     >
                         <option value="ENTREE">Entrée</option>
@@ -147,10 +149,7 @@ export default function EditStockMovement() {
                 />
             </div>
 
-            <ProductSearchSelect
-                products={products}
-                onSelect={handleSelectProduct}
-            />
+            <ProductSearchSelect products={products} onSelect={handleSelectProduct} />
 
             <table className="w-full text-sm mt-4">
                 <thead>

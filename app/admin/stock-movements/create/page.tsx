@@ -9,6 +9,14 @@ import { useProductStore } from '@/stores/product-store';
 import { useStockMovementStore } from '@/stores/stock-movement-store';
 import { toast } from 'react-toastify';
 import ProductSearchSelect from '@/components/product/SelectSearchProduit';
+import { Product } from '@/types/product';
+
+interface StockMovementItem {
+    productId: string;
+    name: string;
+    quantity: number;
+    purchasePrice: number;
+}
 
 export default function CreateStockMovementForm() {
     const { user } = useAuthStore();
@@ -21,22 +29,18 @@ export default function CreateStockMovementForm() {
     const [type, setType] = useState('ENTREE');
     const [description, setDescription] = useState('');
     const [scannedCode, setScannedCode] = useState('');
-    const [selectedProductId, setSelectedProductId] = useState('');
-    const [quantity, setQuantity] = useState<number>(1);
-    const [purchasePrice, setPurchasePrice] = useState<number>(0);
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<StockMovementItem[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (companyId) fetchProducts(companyId);
-    }, [companyId]);
+    }, [companyId, fetchProducts]);
 
     useEffect(() => {
         codeBarInputRef.current?.focus();
     }, []);
 
-    const handleAddProduct = (product: any) => {
-        if (!product) return;
+    const handleAddProduct = (product: Product) => {
         const exists = items.find(i => i.productId === product.id);
         if (exists) {
             setItems(items.map(i =>
@@ -52,7 +56,7 @@ export default function CreateStockMovementForm() {
                     name: product.name,
                     quantity: 1,
                     purchasePrice: product.purchasePrice || 0,
-                }
+                },
             ]);
         }
     };
@@ -72,7 +76,6 @@ export default function CreateStockMovementForm() {
         const found = products.find(p => p.id === productId);
         if (found) {
             handleAddProduct(found);
-            setSelectedProductId(''); // Réinitialise si besoin
         }
     };
 
@@ -86,20 +89,21 @@ export default function CreateStockMovementForm() {
         try {
             await createMovement({
                 companyId,
-                type: type as any,
+                type: type as 'ENTREE' | 'SORTIE' | 'REAPPROVISIONNEMENT' | 'VENTE' | 'INVENTAIRE',
                 description,
                 items: items.map(i => ({
                     productId: i.productId,
                     quantity: i.quantity,
-                    purchasePrice: i.purchasePrice
-                }))
+                    purchasePrice: i.purchasePrice,
+                })),
             });
             toast.success('Mouvement enregistré');
             setItems([]);
             setDescription('');
             setType('ENTREE');
-        } catch (err: any) {
-            toast.error(err.message || 'Erreur');
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error(error.message || 'Erreur');
         } finally {
             setLoading(false);
         }
@@ -130,7 +134,6 @@ export default function CreateStockMovementForm() {
                 </div>
             </div>
 
-            {/* Zone de scan et ajout */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="text-sm font-medium">Scanner un produit</label>
@@ -142,19 +145,14 @@ export default function CreateStockMovementForm() {
                         placeholder="Code-barres"
                     />
                 </div>
-
                 <div>
                     <ProductSearchSelect
                         products={products}
-                        onSelect={(id) => {
-                            setSelectedProductId(id);
-                            handleSelectProduct(id); // ou ta logique pour ajouter à la liste
-                        }}
+                        onSelect={handleSelectProduct}
                     />
                 </div>
             </div>
 
-            {/* Liste produits ajoutés */}
             <div className="mt-4">
                 <h4 className="text-sm font-semibold mb-2">Produits ajoutés</h4>
                 {items.length === 0 ? (

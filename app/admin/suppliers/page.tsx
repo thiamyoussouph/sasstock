@@ -36,7 +36,7 @@ export default function SupplierPage() {
         if (companyId) {
             fetchSuppliers(companyId);
         }
-    }, [companyId]);
+    }, [companyId,fetchSuppliers]);
 
     const handleSubmit = async () => {
         if (!form.name.trim()) {
