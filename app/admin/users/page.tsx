@@ -5,17 +5,18 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Download, Pencil, ShieldCheck, Eye, Power } from 'lucide-react';
+import { Download, Pencil, ShieldCheck, Eye, Power, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useUserStore } from '@/stores/user-store';
 import { CreateUserPayload, UserWithRole } from '@/types/user';
 
 export default function UserManagementPage() {
-    const { users, fetchUsers, updateUser, createUser } = useUserStore();
+    const { users, fetchUsers, updateUser, createUser, loading } = useUserStore();
     const { user: currentUser } = useAuthStore();
     const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
     const [search, setSearch] = useState('');
     const [form, setForm] = useState<Partial<CreateUserPayload>>({});
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         if (currentUser?.company?.id) {
@@ -59,15 +60,19 @@ export default function UserManagementPage() {
             return;
         }
 
+        const companyId = currentUser?.company?.id;
+        if (!companyId) {
+            toast.error("Entreprise introuvable");
+            return;
+        }
+
+        const payload = {
+            ...form,
+            companyId,
+        } as CreateUserPayload;
+
         try {
-            const companyId = currentUser?.company?.id;
-            if (!companyId) throw new Error("Entreprise introuvable");
-
-            const payload = {
-                ...form,
-                companyId,
-            } as CreateUserPayload;
-
+            setSubmitting(true);
             if (selectedUser) {
                 await updateUser({ id: selectedUser.id, ...payload });
                 toast.success("Utilisateur mis à jour");
@@ -82,6 +87,8 @@ export default function UserManagementPage() {
             fetchUsers(companyId);
         } catch (e: any) {
             toast.error("Erreur lors de la soumission : " + (e.message || 'inconnue'));
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -103,43 +110,49 @@ export default function UserManagementPage() {
                     </div>
                 </div>
 
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="bg-gray-100 dark:bg-gray-800">
-                            <th className="p-2 text-left">Nom</th>
-                            <th className="p-2 text-left">Email</th>
-                            <th className="p-2 text-left">Rôle</th>
-                            <th className="p-2 text-left">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredUsers.map((user) => (
-                            <tr key={user.id} className="border-b border-gray-200 dark:border-gray-700">
-                                <td className="p-2">{user.name}</td>
-                                <td className="p-2">{user.email}</td>
-                                <td className="p-2">{user.role?.name || 'N/A'}</td>
-                                <td className="p-2 flex flex-wrap gap-2">
-                                    <Button size="sm" className="bg-blue-500 hover:bg-blue-600" onClick={() => setSelectedUser(user)}>
-                                        <Pencil className="w-4 h-4 mr-1" /> 
-                                    </Button>
-                                    <Button size="sm" className="bg-green-500 hover:bg-green-600">
-                                        <Eye className="w-4 h-4 mr-1" /> 
-                                    </Button>
-                                    <Button size="sm" className="bg-purple-500 hover:bg-purple-600">
-                                        <ShieldCheck className="w-4 h-4 mr-1" /> 
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        className={user.status ? 'bg-red-500 hover:bg-red-600' : 'bg-yellow-400 hover:bg-yellow-500'}
-                                        onClick={() => handleActivate(user)}
-                                    >
-                                        <Power className="w-4 h-4 mr-1" /> {user.status ? 'Désactiver' : 'Activer'}
-                                    </Button>
-                                </td>
+                {loading ? (
+                    <div className="flex justify-center items-center py-10 text-gray-500">
+                        <Loader2 className="animate-spin w-5 h-5 mr-2" /> Chargement des utilisateurs...
+                    </div>
+                ) : (
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-gray-100 dark:bg-gray-800">
+                                <th className="p-2 text-left">Nom</th>
+                                <th className="p-2 text-left">Email</th>
+                                <th className="p-2 text-left">Rôle</th>
+                                <th className="p-2 text-left">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {filteredUsers.map((user) => (
+                                <tr key={user.id} className="border-b border-gray-200 dark:border-gray-700">
+                                    <td className="p-2">{user.name}</td>
+                                    <td className="p-2">{user.email}</td>
+                                    <td className="p-2">{user.role?.name || 'N/A'}</td>
+                                    <td className="p-2 flex flex-wrap gap-2">
+                                        <Button size="sm" className="bg-blue-500 hover:bg-blue-600" onClick={() => setSelectedUser(user)}>
+                                            <Pencil className="w-4 h-4 mr-1" />
+                                        </Button>
+                                        <Button size="sm" className="bg-green-500 hover:bg-green-600">
+                                            <Eye className="w-4 h-4 mr-1" />
+                                        </Button>
+                                        <Button size="sm" className="bg-purple-500 hover:bg-purple-600">
+                                            <ShieldCheck className="w-4 h-4 mr-1" />
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            className={user.status ? 'bg-red-500 hover:bg-red-600' : 'bg-yellow-400 hover:bg-yellow-500'}
+                                            onClick={() => handleActivate(user)}
+                                        >
+                                            <Power className="w-4 h-4 mr-1" /> {user.status ? 'Désactiver' : 'Activer'}
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             {/* Formulaire */}
@@ -173,8 +186,15 @@ export default function UserManagementPage() {
                             />
                         </div>
                     )}
-                    <Button onClick={handleSubmit} className="w-full mt-2">
-                        {selectedUser ? 'Mettre à jour' : 'Créer utilisateur'}
+                    <Button onClick={handleSubmit} className="w-full mt-2" disabled={submitting}>
+                        {submitting ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Soumission...
+                            </span>
+                        ) : (
+                            selectedUser ? 'Mettre à jour' : 'Créer utilisateur'
+                        )}
                     </Button>
                 </div>
             </div>

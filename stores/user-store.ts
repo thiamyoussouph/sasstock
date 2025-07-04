@@ -44,17 +44,27 @@ export const useUserStore = create<UserStore>((set) => ({
 
     updateUser: async (payload) => {
         try {
-            const res = await fetch('/api/users', {
+            const res = await fetch(`/api/users/${payload.id}/update`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'Erreur lors de la mise à jour');
+            }
+
             const updatedUser = await res.json();
+
             set((state) => ({
-                users: state.users.map((u) => (u.id === updatedUser.id ? updatedUser : u)),
+                users: state.users.map((u) =>
+                    u.id === updatedUser.id ? updatedUser : u
+                ),
             }));
         } catch (err: any) {
-            set({ error: err.message });
+            set({ error: err.message || 'Erreur de mise à jour' });
         }
     },
+
 }));
