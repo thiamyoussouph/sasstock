@@ -27,7 +27,7 @@ export default function AdminCategoryPage() {
 
     useEffect(() => {
         if (companyId) fetchCategories(companyId);
-    }, [companyId]);
+    }, [companyId, fetchCategories]);
 
     const filteredCategories = categories.filter((cat) =>
         cat.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -53,10 +53,9 @@ export default function AdminCategoryPage() {
             // Réinitialisation
             setName('');
             setEditingId(null);
-        } catch (e: any) {
-            const message = typeof e === 'string' ? e : e?.message;
-
-            toast.error(message || 'Une erreur est survenue');
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'Une erreur est survenue';
+            toast.error(message);
         } finally {
             setIsLoading(false);
         }

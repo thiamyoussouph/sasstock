@@ -1,5 +1,3 @@
-// Code React complet pour la page de création de vente avec aperçu du ticket de caisse (reçu) affiché à droite
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -15,6 +13,15 @@ import { toast } from 'react-toastify';
 import ProductSearchSelect from '@/components/product/SelectSearchProduit';
 import { Trash2 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
+import { Customer } from '@/types/customer';
+import { Product } from '@/types/product';
+interface CartItem {
+    productId: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+}
 
 export default function CreateSalePage() {
     const router = useRouter();
@@ -30,7 +37,7 @@ export default function CreateSalePage() {
     const codeBarInputRef = useRef<HTMLInputElement>(null);
     const [scannedCode, setScannedCode] = useState('');
 
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<CartItem[]>([]);
     const [customerId, setCustomerId] = useState('');
     const [paymentType, setPaymentType] = useState<'CASH' | 'MOBILE_MONEY' | 'CARD'>('CASH');
     const [saleMode, setSaleMode] = useState<'DETAIL' | 'DEMI_GROS' | 'GROS'>('DETAIL');
@@ -42,106 +49,14 @@ export default function CreateSalePage() {
     const handlePrint = useReactToPrint({
         contentRef: invoiceRef,
         documentTitle: `Ticket-${saleNumber || 'recu'}`,
-        pageStyle: `
-            @page {
-                size: A4;
-                margin: 20mm;
-            }
-            @media print {
-                * {
-                    font-family: Arial, sans-serif !important;
-                    color: #000 !important;
-                }
-                
-                body {
-                    font-size: 12px;
-                    line-height: 1.4;
-                    margin: 0;
-                    padding: 0;
-                }
-                
-                /* Container styles pour l'impression */
-                div[class*="bg-white"] {
-                    background: white !important;
-                    box-shadow: none !important;
-                    border-radius: 0 !important;
-                    padding: 20px !important;
-                }
-                
-                /* Header section */
-                div[class*="flex justify-between"]:first-child {
-                    display: flex !important;
-                    justify-content: space-between !important;
-                    margin-bottom: 20px !important;
-                }
-                
-                /* Client and payment section */
-                div[class*="mt-4 flex justify-between"] {
-                    display: flex !important;
-                    justify-content: space-between !important;
-                    margin: 20px 0 !important;
-                }
-                
-                /* Table styles */
-                table {
-                    width: 100% !important;
-                    border-collapse: collapse !important;
-                    margin: 20px 0 !important;
-                    font-size: 11px !important;
-                }
-                
-                table th,
-                table td {
-                    border: 1px solid #000 !important;
-                    padding: 8px !important;
-                }
-                
-                table th {
-                    background-color: #f0f0f0 !important;
-                    font-weight: bold !important;
-                }
-                
-                /* Utility classes */
-                .text-right {
-                    text-align: right !important;
-                }
-                
-                .text-center {
-                    text-align: center !important;
-                }
-                
-                .font-bold {
-                    font-weight: bold !important;
-                }
-                
-                .capitalize {
-                    text-transform: capitalize !important;
-                }
-                
-                /* Totals section */
-                div[class*="mt-4 text-right"] {
-                    text-align: right !important;
-                    margin-top: 20px !important;
-                }
-                
-                /* Footer message */
-                p[class*="text-center mt-6"] {
-                    text-align: center !important;
-                    margin-top: 30px !important;
-                    font-size: 10px !important;
-                    color: #666 !important;
-                }
-            }
-        `,
     });
-
 
     useEffect(() => {
         if (companyId) {
             fetchProducts(companyId, { limit: 100, page: 1 });
             fetchCustomers(companyId);
         }
-    }, [companyId]);
+    }, [companyId, fetchProducts, fetchCustomers]);
 
     useEffect(() => {
         codeBarInputRef.current?.focus();
@@ -158,16 +73,17 @@ export default function CreateSalePage() {
         codeBarInputRef.current?.focus();
     };
 
-    const handleAddProduct = (product: any) => {
-        let price = saleMode === 'GROS' ? product.priceWholesale : saleMode === 'DEMI_GROS' ? product.priceHalf : product.price;
+    const handleAddProduct = (product: Product) => {
+        const price = saleMode === 'GROS' ? product.priceWholesale :
+            saleMode === 'DEMI_GROS' ? product.priceHalf : product.price;
 
         if (price == null) {
-            toast.error(`Ce produit n'a pas de prix pour le mode de vente : ${saleMode}`);
+            toast.error(`Ce produit n'a pas de prix pour le mode : ${saleMode}`);
             setPriceError(true);
             return;
-        } else {
-            setPriceError(false);
         }
+
+        setPriceError(false);
 
         const exists = items.find(i => i.productId === product.id);
         if (exists) {
@@ -232,17 +148,12 @@ export default function CreateSalePage() {
             toast.success('Vente enregistrée');
             setSaleNumber(res.numberSale || null);
 
-            setTimeout(() => {
-                handlePrint?.();
-            }, 300);
+            setTimeout(() => handlePrint?.(), 300);
+            setTimeout(() => router.push('/admin/sales'), 1000);
 
-            setTimeout(() => {
-                router.push('/admin/sales');
-            }, 1000);
-
-        } catch (err: any) {
-            console.error('Erreur lors de la création de la vente :', err);
-            toast.error(err.message || 'Erreur serveur');
+        } catch (err: unknown) {
+            console.error('Erreur création vente :', err);
+            toast.error((err as Error).message || 'Erreur serveur');
         } finally {
             setSubmitting(false);
         }
@@ -253,27 +164,19 @@ export default function CreateSalePage() {
             <div className="md:col-span-2 space-y-4">
                 <h1 className="text-xl font-semibold mb-4">Nouvelle vente</h1>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                         <Label>Client</Label>
-                        <select
-                            className="w-full border px-3 py-2 rounded"
-                            value={customerId}
-                            onChange={(e) => setCustomerId(e.target.value)}
-                        >
+                        <select className="w-full border px-3 py-2 rounded" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
                             <option value="">Client passager</option>
-                            {customers.map(c => (
+                            {customers.map((c: Customer) => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
                     </div>
                     <div>
                         <Label>Mode de vente</Label>
-                        <select
-                            className="w-full border px-3 py-2 rounded"
-                            value={saleMode}
-                            onChange={(e) => setSaleMode(e.target.value as any)}
-                        >
+                        <select className="w-full border px-3 py-2 rounded" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
                             <option value="DETAIL">Détail</option>
                             <option value="DEMI_GROS">Demi-gros</option>
                             <option value="GROS">Gros</option>
@@ -281,14 +184,10 @@ export default function CreateSalePage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="grid sm:grid-cols-2 gap-4 mt-4">
                     <div>
                         <Label>Paiement</Label>
-                        <select
-                            className="w-full border px-3 py-2 rounded"
-                            value={paymentType}
-                            onChange={(e) => setPaymentType(e.target.value as any)}
-                        >
+                        <select className="w-full border px-3 py-2 rounded" value={paymentType} onChange={(e) => setPaymentType(e.target.value as any)}>
                             <option value="CASH">Espèces</option>
                             <option value="MOBILE_MONEY">Mobile Money</option>
                             <option value="CARD">Carte</option>
@@ -296,7 +195,7 @@ export default function CreateSalePage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="grid sm:grid-cols-2 gap-4 mt-4">
                     <div>
                         <Label>Scanner un produit</Label>
                         <Input
@@ -319,20 +218,18 @@ export default function CreateSalePage() {
                     </div>
                 </div>
 
-                {priceError && (
-                    <p className="text-red-500 text-sm mb-2">Un ou plusieurs produits ne disposent pas du prix pour le mode de vente choisi.</p>
-                )}
+                {priceError && <p className="text-red-500 text-sm">Un ou plusieurs produits n'ont pas de prix.</p>}
 
                 {items.length > 0 && (
                     <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
                             <thead className="bg-gray-100">
                                 <tr>
-                                    <th className="text-left p-2">Produit</th>
-                                    <th className="text-right p-2">Qté</th>
-                                    <th className="text-right p-2">PU</th>
-                                    <th className="text-right p-2">Total</th>
-                                    <th className="text-center p-2">Actions</th>
+                                    <th className="p-2 text-left">Produit</th>
+                                    <th className="p-2 text-right">Qté</th>
+                                    <th className="p-2 text-right">PU</th>
+                                    <th className="p-2 text-right">Total</th>
+                                    <th className="p-2 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -340,12 +237,7 @@ export default function CreateSalePage() {
                                     <tr key={idx}>
                                         <td className="p-2">{item.name}</td>
                                         <td className="p-2 text-right">
-                                            <Input
-                                                type="number"
-                                                value={item.quantity}
-                                                onChange={(e) => handleQuantityChange(item.productId, Number(e.target.value))}
-                                                className="w-20 text-right"
-                                            />
+                                            <Input type="number" value={item.quantity} onChange={(e) => handleQuantityChange(item.productId, Number(e.target.value))} className="w-20" />
                                         </td>
                                         <td className="p-2 text-right">{item.unitPrice.toFixed(2)}</td>
                                         <td className="p-2 text-right">{item.total.toFixed(2)}</td>
@@ -358,50 +250,45 @@ export default function CreateSalePage() {
                                 ))}
                             </tbody>
                         </table>
-                        <p className="text-right mt-2 font-bold">Total: {total.toFixed(2)} €</p>
+                        <p className="text-right font-bold mt-2">Total : {total.toFixed(2)} €</p>
                     </div>
                 )}
 
-                <Button
-                    className="mt-4 bg-blue-600 hover:bg-blue-700"
-                    onClick={handleSubmit}
-                    disabled={submitting || priceError || items.length === 0}
-                >
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit} disabled={submitting || priceError || items.length === 0}>
                     {submitting ? 'Enregistrement...' : 'Enregistrer'}
                 </Button>
             </div>
-            {/* Ticket de caisse */}
-            <div ref={invoiceRef} className="bg-white border rounded p-4 print:w-full">
-                <div className="bg-white border rounded p-4 print:w-full">
-                    <h2 className="text-lg font-semibold border-b pb-2 mb-2">Ticket de caisse: {saleNumber}</h2>
-                    <p className="text-sm">Entreprise : {user?.company?.name}</p>
-                    <p className="text-sm">Caissier : {user?.name}</p>
-                    <p className="text-sm mb-4">Date : {new Date().toLocaleString()}</p>
 
-                    <table className="w-full text-sm">
-                        <thead className="border-b">
-                            <tr>
-                                <th className="text-left py-1">Produit</th>
-                                <th className="text-right py-1">Qté</th>
-                                <th className="text-right py-1">PU</th>
-                                <th className="text-right py-1">Total</th>
+            {/* Ticket à imprimer */}
+            <div ref={invoiceRef} className="bg-white border rounded p-4 print:w-full">
+                <h2 className="text-lg font-semibold border-b pb-2 mb-2">Ticket de caisse : {saleNumber}</h2>
+                <p className="text-sm">Entreprise : {user?.company?.name}</p>
+                <p className="text-sm">Caissier : {user?.name}</p>
+                <p className="text-sm mb-4">Date : {new Date().toLocaleString()}</p>
+
+                <table className="w-full text-sm">
+                    <thead className="border-b">
+                        <tr>
+                            <th className="text-left py-1">Produit</th>
+                            <th className="text-right py-1">Qté</th>
+                            <th className="text-right py-1">PU</th>
+                            <th className="text-right py-1">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((item, idx) => (
+                            <tr key={idx}>
+                                <td>{item.name}</td>
+                                <td className="text-right">{item.quantity}</td>
+                                <td className="text-right">{item.unitPrice.toFixed(2)}</td>
+                                <td className="text-right">{item.total.toFixed(2)}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((item, idx) => (
-                                <tr key={idx}>
-                                    <td>{item.name}</td>
-                                    <td className="text-right">{item.quantity}</td>
-                                    <td className="text-right">{item.unitPrice.toFixed(2)}</td>
-                                    <td className="text-right">{item.total.toFixed(2)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <hr className="my-2" />
-                    <p className="text-right font-semibold">Total à payer : {total.toFixed(2)} €</p>
-                    <p className="text-center mt-4 text-xs text-gray-500">Merci pour votre achat !</p>
-                </div>
+                        ))}
+                    </tbody>
+                </table>
+                <hr className="my-2" />
+                <p className="text-right font-semibold">Total à payer : {total.toFixed(2)} €</p>
+                <p className="text-center mt-4 text-xs text-gray-500">Merci pour votre achat !</p>
             </div>
         </div>
     );

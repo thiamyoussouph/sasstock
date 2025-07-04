@@ -37,7 +37,7 @@ export default function CustomerPage() {
         if (companyId) {
             fetchCustomers(companyId);
         }
-    }, [companyId]);
+    }, [companyId, fetchCustomers]);
 
     const handleSubmit = async () => {
         if (!form.name.trim()) {
@@ -66,8 +66,9 @@ export default function CustomerPage() {
 
             setForm({ name: '', phone: '', email: '', address: '', creditLimit: '' });
             setEditingId(null);
-        } catch (e: any) {
-            toast.error(e.message || "Erreur lors de l’enregistrement");
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'Une erreur est survenue';
+            toast.error(message);
         } finally {
             setLoading(false);
         }

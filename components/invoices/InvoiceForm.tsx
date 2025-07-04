@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import InvoicePreview from './InvoicePreview';
 import { useAuthStore } from '@/stores/auth-store';
 import { useInvoiceStore } from '@/stores/invoice-store';
 import { toast } from 'react-toastify';
+import { useReactToPrint } from 'react-to-print';
 
 // Temporaire : à remplacer par une vraie liste des clients depuis API
 const clients = [
@@ -40,6 +41,7 @@ export default function CreateInvoiceForm() {
     const { createInvoice } = useInvoiceStore();
     const router = useRouter();
 
+
     const [products, setProducts] = useState<Product[]>([
         { quantity: 1, description: '', unitPrice: 0, total: 0 },
     ]);
@@ -52,11 +54,108 @@ export default function CreateInvoiceForm() {
     const [status, setStatus] = useState<'unpaid' | 'paid'>('unpaid');
     const [tvaEnabled, setTvaEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const invoiceRef = useRef<HTMLDivElement>(null);
 
     const emitterName = company?.name || '';
     const emitterAddress = company?.address || '';
     const emitterPhone = company?.phone || '';
     const emitterEmail = company?.email || '';
+
+    const handlePrint = useReactToPrint({
+        contentRef: invoiceRef,
+        documentTitle: `Ticket-${invoiceTitle || 'recu'}`,
+        pageStyle: `
+            @page {
+                size: A4;
+                margin: 20mm;
+            }
+            @media print {
+                * {
+                    font-family: Arial, sans-serif !important;
+                    color: #000 !important;
+                }
+                
+                body {
+                    font-size: 12px;
+                    line-height: 1.4;
+                    margin: 0;
+                    padding: 0;
+                }
+                
+                /* Container styles pour l'impression */
+                div[class*="bg-white"] {
+                    background: white !important;
+                    box-shadow: none !important;
+                    border-radius: 0 !important;
+                    padding: 20px !important;
+                }
+                
+                /* Header section */
+                div[class*="flex justify-between"]:first-child {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    margin-bottom: 20px !important;
+                }
+                
+                /* Client and payment section */
+                div[class*="mt-4 flex justify-between"] {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    margin: 20px 0 !important;
+                }
+                
+                /* Table styles */
+                table {
+                    width: 100% !important;
+                    border-collapse: collapse !important;
+                    margin: 20px 0 !important;
+                    font-size: 11px !important;
+                }
+                
+                table th,
+                table td {
+                    border: 1px solid #000 !important;
+                    padding: 8px !important;
+                }
+                
+                table th {
+                    background-color: #f0f0f0 !important;
+                    font-weight: bold !important;
+                }
+                
+                /* Utility classes */
+                .text-right {
+                    text-align: right !important;
+                }
+                
+                .text-center {
+                    text-align: center !important;
+                }
+                
+                .font-bold {
+                    font-weight: bold !important;
+                }
+                
+                .capitalize {
+                    text-transform: capitalize !important;
+                }
+                
+                /* Totals section */
+                div[class*="mt-4 text-right"] {
+                    text-align: right !important;
+                    margin-top: 20px !important;
+                }
+                
+                /* Footer message */
+                p[class*="text-center mt-6"] {
+                    text-align: center !important;
+                    margin-top: 30px !important;
+                    font-size: 10px !important;
+                    color: #666 !important;
+                }
+            }
+        `,
+    });
 
     const handleProductChange = (
         index: number,
@@ -77,6 +176,7 @@ export default function CreateInvoiceForm() {
     const totalHT = products.reduce((acc, p) => acc + p.total, 0);
     const totalTVA = tvaEnabled ? (totalHT * tvaRate) / 100 : 0;
     const totalTTC = totalHT + totalTVA;
+
 
     const handleSubmit = async () => {
         setIsLoading(true);
@@ -120,6 +220,9 @@ export default function CreateInvoiceForm() {
             });
 
             toast.success('Facture créée avec succès !');
+            setTimeout(() => {
+                handlePrint?.();
+            }, 300);
             router.push('/admin/invoices');
         } catch (error) {
             console.error('Erreur création facture', error);
@@ -281,6 +384,7 @@ export default function CreateInvoiceForm() {
                     products={products}
                     tvaRate={tvaRate}
                     tvaEnabled={tvaEnabled}
+                    ref={invoiceRef}
                 />
             </div>
         </div>

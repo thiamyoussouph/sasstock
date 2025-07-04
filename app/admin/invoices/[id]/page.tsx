@@ -9,20 +9,56 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'react-toastify';
 import { Loader2, CheckCircle, Printer, ArrowLeft, Pencil } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
+import Image from 'next/image';
+
+interface Company {
+    name: string;
+    address: string;
+    email: string;
+    phone: string;
+    logoUrl?: string;
+}
+
+interface Customer {
+    name: string;
+    address?: string;
+    email?: string;
+    phone?: string;
+}
+
+interface InvoiceItem {
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+}
+
+interface Invoice {
+    id: string;
+    invoiceNumber: string;
+    title: string;
+    issueDate: string;
+    dueDate: string;
+    tva: number;
+    status: 'paid' | 'unpaid';
+    company: Company;
+    customer: Customer;
+    invoiceItems: InvoiceItem[];
+}
 
 export default function InvoiceDetailPage() {
     const { token } = useAuthStore();
     const { id } = useParams();
     const router = useRouter();
     const invoiceRef = useRef<HTMLDivElement>(null);
-    const [invoice, setInvoice] = useState<any>(null);
+    const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!id) return;
         fetch(`/api/invoices/details/${id}`)
             .then((res) => res.json())
-            .then((data) => setInvoice(data))
+            .then((data: Invoice) => setInvoice(data))
             .catch(() => toast.error("Erreur lors du chargement de la facture"))
             .finally(() => setLoading(false));
     }, [id]);
@@ -42,7 +78,7 @@ export default function InvoiceDetailPage() {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`${invoice.invoiceNumber || 'facture'}.pdf`);
+        pdf.save(`${invoice?.invoiceNumber || 'facture'}.pdf`);
     };
 
     const handleMarkAsPaid = async () => {
@@ -56,8 +92,8 @@ export default function InvoiceDetailPage() {
                 body: JSON.stringify({ status: 'paid' }),
             });
             toast.success('Facture marquée comme payée');
-            setInvoice({ ...invoice, status: 'paid' });
-        } catch (err) {
+            setInvoice(invoice ? { ...invoice, status: 'paid' } : null);
+        } catch {
             toast.error("Erreur lors de la mise à jour du statut");
         }
     };
@@ -77,7 +113,7 @@ export default function InvoiceDetailPage() {
         status
     } = invoice;
 
-    const totalHT = invoiceItems.reduce((acc: number, p: any) => acc + p.total, 0);
+    const totalHT = invoiceItems.reduce((acc, p) => acc + p.total, 0);
     const totalTVA = tva ? (totalHT * tva) / 100 : 0;
     const totalTTC = totalHT + totalTVA;
 
@@ -95,45 +131,38 @@ export default function InvoiceDetailPage() {
                 </div>
             </div>
 
-            <div ref={invoiceRef} className="bg-white text-black p-6 rounded shadow  relative overflow-hidden">
+            <div ref={invoiceRef} className="bg-white text-black p-6 rounded shadow relative overflow-hidden">
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
                     <span className="text-[120px] font-extrabold text-gray-300 opacity-20 rotate-[-30deg]">
                         FACTURE
                     </span>
                 </div>
+
                 <div className="flex justify-between items-center">
-                    {/* À gauche : logo ou texte "FACTURE" */}
                     <div>
-                        {company?.logoUrl ? (
-                            <img src={company.logoUrl} alt="Logo de l'entreprise" className="h-16 object-contain" />
+                        {company.logoUrl ? (
+                            <Image src={company.logoUrl} alt="Logo de l'entreprise" width={64} height={64} className="object-contain h-16 w-auto" />
                         ) : (
                             <h2 className="text-4xl font-extrabold tracking-tight">FACTURE</h2>
                         )}
                     </div>
 
-                    {/* À droite : infos de la facture */}
                     <div className="text-right">
                         <p className="text-md font-bold text-gray-600">Facture n° {invoiceNumber}</p>
                         <p className="text-sm">{title}</p>
                         <p className="text-sm">Date : {format(new Date(issueDate), 'dd/MM/yyyy')}</p>
                         <p className="text-sm">Échéance : {format(new Date(dueDate), 'dd/MM/yyyy')}</p>
-                        <p className="text-sm capitalize">
-                            Statut : <strong>{status}</strong>
-                        </p>
+                        <p className="text-sm capitalize">Statut : <strong>{status}</strong></p>
                     </div>
                 </div>
 
-
                 <div className="flex justify-between items-start mt-6">
-                    {/* Informations de la société - à gauche */}
                     <div className="text-sm text-left">
-                        <p><strong>{company?.name}</strong></p>
-                        <p>{company?.address}</p>
-                        <p>{company?.email}</p>
-                        <p>{company?.phone}</p>
+                        <p><strong>{company.name}</strong></p>
+                        <p>{company.address}</p>
+                        <p>{company.email}</p>
+                        <p>{company.phone}</p>
                     </div>
-
-                    {/* Informations du client - à droite */}
                     <div className="text-sm text-right">
                         <p className="font-bold">Client :</p>
                         <p>{customer?.name || '—'}</p>
@@ -154,7 +183,7 @@ export default function InvoiceDetailPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {invoiceItems.map((item: any, i: number) => (
+                        {invoiceItems.map((item, i) => (
                             <tr key={i}>
                                 <td className="border px-2 py-1">{i + 1}</td>
                                 <td className="border px-2 py-1">{item.name}</td>
@@ -168,7 +197,7 @@ export default function InvoiceDetailPage() {
 
                 <div className="mt-4 text-sm text-right">
                     <p>Total HT : {totalHT.toFixed(2)} €</p>
-                    {tva && <p>TVA ({tva}%) : {totalTVA.toFixed(2)} €</p>}
+                    {tva > 0 && <p>TVA ({tva}%) : {totalTVA.toFixed(2)} €</p>}
                     <p className="font-bold">Total TTC : {totalTTC.toFixed(2)} €</p>
                 </div>
             </div>

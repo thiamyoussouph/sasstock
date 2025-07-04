@@ -2,7 +2,6 @@
 
 import { useRef } from 'react';
 import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -21,6 +20,7 @@ interface Props {
   tvaEnabled: boolean;
   signatureUrl?: string;
   stampUrl?: string;
+  ref:any;
 }
 
 export default function InvoicePreview({
@@ -37,9 +37,10 @@ export default function InvoicePreview({
   tvaRate,
   tvaEnabled,
   signatureUrl,
-  stampUrl
+  stampUrl,
+  ref
 }: Props) {
-  const invoiceRef = useRef<HTMLDivElement>(null);
+ 
 
   const totalHT = products.reduce((acc, p) => acc + p.total, 0);
   const totalTVA = tvaEnabled ? (totalHT * tvaRate) / 100 : 0;
@@ -51,33 +52,12 @@ export default function InvoicePreview({
     return isNaN(d.getTime()) ? '—' : format(d, 'dd MMMM yyyy');
   };
 
-  const handleExportPDF = async () => {
-    if (!invoiceRef.current) return;
-
-    const canvas = await html2canvas(invoiceRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff', // Pour éviter l'erreur avec oklch ou transparent
-    });
-
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    });
-
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`${invoiceNumber || 'facture'}.pdf`);
-  };
+  
 
   return (
     <>
       <div
-        ref={invoiceRef}
+        ref={ref}
         className="p-6 rounded shadow border text-black bg-white"
         style={{
           color: '#000000',
@@ -172,13 +152,6 @@ export default function InvoicePreview({
           </div>
         )}
       </div>
-
-      <Button
-        onClick={handleExportPDF}
-        className="mt-6 bg-orange-500 hover:bg-orange-600 text-white"
-      >
-        Télécharger la Facture ⬇
-      </Button>
     </>
   );
 }

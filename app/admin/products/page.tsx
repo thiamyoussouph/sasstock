@@ -50,7 +50,7 @@ export default function ProductList() {
             });
             fetchCategories(companyId);
         }
-    }, [companyId, page, search, selectedCategory]);
+    }, [companyId, page, search, selectedCategory, fetchProducts, fetchCategories]);
 
     const exportPDF = () => {
         const doc = new jsPDF();

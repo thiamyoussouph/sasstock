@@ -9,7 +9,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { FileText, Plus, CreditCard, XCircle } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
 import PaymentModal from '@/components/sale/PaymentModal';
 import { toast } from 'react-toastify';
 
@@ -18,7 +18,7 @@ export default function SalesListPage() {
     const { user } = useAuthStore();
     const companyId = user?.company?.id;
 
-    const { sales, fetchSales, deleteSale } = useSaleStore();
+    const { sales, fetchSales } = useSaleStore();
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [page, setPage] = useState(1);
@@ -30,7 +30,7 @@ export default function SalesListPage() {
         if (companyId) {
             fetchSales({ companyId, page, limit, startDate, endDate });
         }
-    }, [companyId, page, limit, startDate, endDate]);
+    }, [companyId, page, limit, startDate, endDate, fetchSales]);
 
     const exportPDF = () => {
         const doc = new jsPDF();
@@ -63,12 +63,14 @@ export default function SalesListPage() {
                 method: 'PUT',
             });
             if (!res.ok) throw new Error(await res.text());
+
             toast.success('Vente annulée.');
             if (companyId) {
                 fetchSales({ companyId, page, limit, startDate, endDate });
             }
-        } catch (error: any) {
-            toast.error(error.message || 'Erreur lors de l’annulation');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Erreur lors de l’annulation';
+            toast.error(message);
         }
     };
 
@@ -114,8 +116,9 @@ export default function SalesListPage() {
                             <td className="p-2">{sale.paymentType}</td>
                             <td className="p-2">
                                 <span className={`text-xs px-2 py-1 rounded ${sale.status === 'PAID' ? 'bg-green-100 text-green-700' :
-                                    sale.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700' :
-                                        sale.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                        sale.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700' :
+                                            sale.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                                                'bg-gray-100 text-gray-600'
                                     }`}>
                                     {sale.status}
                                 </span>
@@ -128,12 +131,10 @@ export default function SalesListPage() {
                                     Détails
                                 </Button>
                                 <Button size="sm" className='bg-green-600 text-white' variant="ghost" onClick={() => handleOpenPayment(sale.id)}>
-                                    {/* <CreditCard className="w-4 h-4 text-green-600" /> */}
                                     Payer
                                 </Button>
                                 {sale.status !== 'CANCELLED' && (
                                     <Button size="sm" className='bg-red-500 text-white' variant="ghost" onClick={() => handleCancelSale(sale.id)}>
-                                        {/* <XCircle className="w-4 h-4 text-red-600" /> */}
                                         Annuler
                                     </Button>
                                 )}

@@ -14,14 +14,11 @@ import { toast } from "react-toastify";
 
 export default function EditProductPage() {
     const router = useRouter();
-    const id = useParams().id as string;
+    const { id } = useParams();
 
-    if (!id) {
-        toast.error("ID produit introuvable");
-        return;
-    }
     const { user } = useAuthStore();
     const companyId = user?.company?.id ?? "";
+
     const { updateProduct, fetchProducts, products } = useProductStore();
     const { categories, fetchCategories } = useCategoryStore();
 
@@ -40,10 +37,14 @@ export default function EditProductPage() {
     const [categoryId, setCategoryId] = useState("");
 
     useEffect(() => {
-        if (companyId) fetchCategories(companyId);
-    }, [companyId]);
+        if (companyId) {
+            fetchCategories(companyId);
+        }
+    }, [companyId, fetchCategories]);
 
     useEffect(() => {
+        if (!id || typeof id !== "string") return;
+
         fetchProducts(companyId).then(() => {
             const product = products.find((p) => p.id === id);
             if (product) {
@@ -57,10 +58,12 @@ export default function EditProductPage() {
                 setStockMin(product.stockMin.toString());
                 setQuantity(product.quantity.toString());
                 setCategoryId(product.categoryId || "");
+            } else {
+                toast.error("Produit introuvable");
             }
             setLoading(false);
         });
-    }, [id, companyId]);
+    }, [id, companyId, fetchProducts, products]);
 
     const handleSave = async () => {
         if (!name.trim() || !price || !unit) {
@@ -71,7 +74,7 @@ export default function EditProductPage() {
         setIsSaving(true);
         try {
             await updateProduct({
-                id,
+                id: id as string,
                 name,
                 codeBar,
                 description,
@@ -86,7 +89,7 @@ export default function EditProductPage() {
 
             toast.success("Produit modifié avec succès");
             router.push("/admin/products");
-        } catch (e) {
+        } catch {
             toast.error("Erreur lors de la modification");
         } finally {
             setIsSaving(false);
