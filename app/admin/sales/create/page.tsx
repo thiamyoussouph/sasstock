@@ -176,24 +176,38 @@ export default function CreateSalePage() {
                     </div>
                     <div>
                         <Label>Mode de vente</Label>
-                        <select className="w-full border px-3 py-2 rounded" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
+                        <select
+                            className="w-full border px-3 py-2 rounded"
+                            value={saleMode}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                                setSaleMode(e.target.value as 'DETAIL' | 'DEMI_GROS' | 'GROS')
+                            }
+                        >
                             <option value="DETAIL">Détail</option>
                             <option value="DEMI_GROS">Demi-gros</option>
                             <option value="GROS">Gros</option>
                         </select>
                     </div>
+
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4 mt-4">
                     <div>
                         <Label>Paiement</Label>
-                        <select className="w-full border px-3 py-2 rounded" value={paymentType} onChange={(e) => setPaymentType(e.target.value as any)}>
+                        <select
+                            className="w-full border px-3 py-2 rounded"
+                            value={paymentType}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                                setPaymentType(e.target.value as 'CASH' | 'MOBILE_MONEY' | 'CARD')
+                            }
+                        >
                             <option value="CASH">Espèces</option>
                             <option value="MOBILE_MONEY">Mobile Money</option>
                             <option value="CARD">Carte</option>
                         </select>
                     </div>
                 </div>
+
 
                 <div className="grid sm:grid-cols-2 gap-4 mt-4">
                     <div>
@@ -218,7 +232,7 @@ export default function CreateSalePage() {
                     </div>
                 </div>
 
-                {priceError && <p className="text-red-500 text-sm">Un ou plusieurs produits n'ont pas de prix.</p>}
+                {priceError && <p className="text-red-500 text-sm">Un ou plusieurs produits n&apos;ont pas de prix.</p>}
 
                 {items.length > 0 && (
                     <div className="overflow-x-auto">

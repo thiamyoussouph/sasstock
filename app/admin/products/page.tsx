@@ -29,7 +29,6 @@ export default function ProductList() {
         fetchProducts,
         toggleProductStatus,
         totalPages,
-        page: currentPage,
     } = useProductStore();
     const { categories, fetchCategories } = useCategoryStore();
 
