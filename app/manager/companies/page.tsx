@@ -1,131 +1,239 @@
-// app/api/products/upload/route.ts
+'use client';
 
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import * as XLSX from 'xlsx';
-import { Prisma } from '@prisma/client';
+import { useEffect, useState } from 'react';
+import { useCompanyStore } from '@/stores/company-store';
+import { usePlanStore } from '@/stores/plan-store';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Company } from '@/types/company';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'react-toastify';
 
-interface ExcelRow {
-    [key: string]: string | number | boolean | Date | undefined;
-}
+export default function CompanyPage() {
+    const {
+        companies,
+        fetchCompanies,
+        createCompany,
+        updateCompany,
+        totalPages,
+        loading,
+        error,
+    } = useCompanyStore();
 
-export async function POST(req: NextRequest) {
-    try {
-        const formData = await req.formData();
-        const file = formData.get('file') as File;
-        const companyId = formData.get('companyId')?.toString();
+    const {
+        plans,
+        fetchPlans,
+        loading: loadingPlans,
+    } = usePlanStore();
 
-        if (!file || !companyId) {
-            console.error('❌ Fichier ou companyId manquant');
-            return NextResponse.json({ message: 'Fichier ou ID de l’entreprise manquant.' }, { status: 400 });
+    const [form, setForm] = useState<Partial<Company>>({});
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        fetchCompanies(page);
+    }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        fetchPlans();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleChange = (key: keyof Company, value: string | undefined) => {
+        setForm({ ...form, [key]: value });
+    };
+
+    const handleSubmit = async () => {
+        if (!form.name || !form.email) {
+            toast.error('Nom et email sont obligatoires');
+            return;
         }
 
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
-
-        const sheetName = workbook.SheetNames[0];
-        const rows = XLSX.utils.sheet_to_json<ExcelRow>(workbook.Sheets[sheetName]);
-
-        console.log(`✅ ${rows.length} lignes lues dans le fichier Excel.`);
-
-        if (rows.length === 0) {
-            console.warn('⚠️ Le fichier est vide.');
-            return NextResponse.json({ message: 'Le fichier est vide.' }, { status: 400 });
-        }
-
-        const createdProducts: Prisma.ProductCreateManyInput[] = [];
-        const duplicates: ExcelRow[] = [];
-        const newCategories: Set<string> = new Set();
-
-        for (let index = 0; index < rows.length; index++) {
-            const row = rows[index];
-            console.log(`🔍 Traitement ligne ${index + 1}:`, row);
-
-            const name = row['Nom'] as string;
-            const category = row['Catégorie'] as string;
-            const price = row['Prix détail'] as number;
-            const unit = row['Unité'] as string;
-
-            const codeBar = row['Code barre'];
-            const description = row['Description'] as string;
-            const purchasePrice = row['Prix achat'];
-            const priceHalf = row['Prix demi-gros'];
-            const priceWholesale = row['Prix gros'];
-            const stockMin = row['Stock min'];
-            const quantity = row['Quantité'];
-            const isActive = row['Actif'];
-            const dateExpiration = row['Date expiration'];
-
-            if (!name || !category || !price || !unit) {
-                console.warn(`⛔ Ligne ignorée (champs obligatoires manquants):`, row);
-                continue;
-            }
-
-            const exists = await prisma.product.findFirst({
-                where: {
-                    companyId,
-                    name,
-                    ...(codeBar ? { codeBar: codeBar.toString() } : {})
-                }
-            });
-
-            if (exists) {
-                console.warn(`⚠️ Produit déjà existant : ${name}`);
-                duplicates.push(row);
-                continue;
-            }
-
-            let cat = await prisma.category.findFirst({
-                where: { name: category, companyId }
-            });
-
-            if (!cat) {
-                cat = await prisma.category.create({
-                    data: { name: category, companyId }
+        setSubmitting(true);
+        try {
+            if (editingId) {
+                await updateCompany({
+                    id: editingId,
+                    name: form.name,
+                    email: form.email,
+                    invoicePrefix: form.invoicePrefix ?? 'FAC',
+                    phone: form.phone,
+                    address: form.address,
+                    planId: form.planId,
+                    signatureUrl: form.signatureUrl,
+                    stampUrl: form.stampUrl,
                 });
-                newCategories.add(category);
-                console.log(`📁 Catégorie créée : ${category}`);
+                toast.success('Entreprise modifiée');
+            } else {
+                await createCompany({
+                    name: form.name,
+                    email: form.email,
+                    invoicePrefix: form.invoicePrefix ?? 'FAC',
+                    phone: form.phone,
+                    address: form.address,
+                    planId: form.planId,
+                    signatureUrl: form.signatureUrl,
+                    stampUrl: form.stampUrl,
+                });
+                toast.success('Entreprise créée');
             }
 
-            const productData: Prisma.ProductCreateManyInput = {
-                name,
-                companyId,
-                categoryId: cat.id,
-                codeBar: codeBar?.toString() || undefined,
-                description: description || '',
-                purchasePrice: purchasePrice ? parseFloat(purchasePrice.toString()) : undefined,
-                price: parseFloat(price.toString()),
-                priceHalf: priceHalf ? parseFloat(priceHalf.toString()) : undefined,
-                priceWholesale: priceWholesale ? parseFloat(priceWholesale.toString()) : undefined,
-                unit,
-                stockMin: stockMin ? parseInt(stockMin.toString()) : 0,
-                quantity: quantity ? parseInt(quantity.toString()) : 0,
-                isActive: isActive === false || isActive === 'false' ? false : true,
-                dateExpiration: dateExpiration ? new Date(dateExpiration.toString()) : undefined
-            };
-
-            createdProducts.push(productData);
-            console.log(`✅ Produit préparé pour création: ${name}`);
+            setForm({});
+            setEditingId(null);
+            fetchCompanies(page); // refresh
+        } catch {
+            toast.error('Erreur lors de la soumission');
+        } finally {
+            setSubmitting(false);
         }
+    };
 
-        if (createdProducts.length > 0) {
-            await prisma.product.createMany({ data: createdProducts });
-            console.log(`✅ ${createdProducts.length} produits insérés dans la base.`);
-        } else {
-            console.log('ℹ️ Aucun produit à insérer.');
-        }
+    const handleEdit = (company: Company) => {
+        setForm(company);
+        setEditingId(company.id ?? null);
+    };
 
-        return NextResponse.json({
-            message: `✅ ${createdProducts.length} produits créés avec succès.`,
-            created: createdProducts.length,
-            duplicates,
-            newCategories: Array.from(newCategories)
-        });
-    } catch (error) {
-        console.error('[UPLOAD_PRODUCTS_ERROR]', error);
-        return NextResponse.json(
-            { message: 'Erreur lors du traitement du fichier.' },
-            { status: 500 }
-        );
-    }
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 p-6">
+            {/* Liste des entreprises */}
+            <div className="md:col-span-8 bg-white dark:bg-gray-900 p-4 rounded shadow">
+                <h2 className="text-lg font-semibold mb-4">Entreprises</h2>
+                {loading && <p className="text-sm text-gray-500">Chargement...</p>}
+                {error && <p className="text-sm text-red-500">{error}</p>}
+
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="bg-gray-100 dark:bg-gray-800">
+                            <th className="p-2 text-left">Nom</th>
+                            <th className="p-2 text-left">Email</th>
+                            <th className="p-2 text-left">Téléphone</th>
+                            <th className="p-2 text-left">Plan</th>
+                            <th className="p-2 text-left">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {companies.length > 0 ? (
+                            companies.map((company) => (
+                                <tr
+                                    key={company.id}
+                                    className="border-b border-gray-200 dark:border-gray-700"
+                                >
+                                    <td className="p-2">{company.name}</td>
+                                    <td className="p-2">{company.email}</td>
+                                    <td className="p-2">{company.phone}</td>
+                                    <td className="p-2">
+                                        {company.plan?.name || <span className="text-gray-400">N/A</span>}
+                                    </td>
+                                    <td className="p-2 space-x-2">
+                                        <Button className="bg-yellow-400 hover:bg-yellow-500" size="sm" onClick={() => handleEdit(company)}>
+                                            Modifier
+                                        </Button>
+                                        <Button className="bg-green-500 hover:bg-green-600" size="sm">
+                                            Abonnement
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={5} className="p-2 text-center text-gray-500">
+                                    Aucune entreprise trouvée.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+
+                {totalPages > 1 && (
+                    <div className="flex justify-center mt-4 gap-2">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                            <Button
+                                key={p}
+                                variant={p === page ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setPage(p)}
+                            >
+                                {p}
+                            </Button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Formulaire */}
+            <div className="md:col-span-4 bg-white dark:bg-gray-900 p-4 rounded shadow">
+                <h2 className="text-lg font-semibold mb-4">
+                    {editingId ? "Modifier l'entreprise" : 'Nouvelle entreprise'}
+                </h2>
+
+                <div className="space-y-3">
+                    <div>
+                        <Label>Nom *</Label>
+                        <Input
+                            value={form.name || ''}
+                            onChange={(e) => handleChange('name', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <Label>Email *</Label>
+                        <Input
+                            value={form.email || ''}
+                            onChange={(e) => handleChange('email', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <Label>Téléphone</Label>
+                        <Input
+                            value={form.phone || ''}
+                            onChange={(e) => handleChange('phone', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <Label>Adresse</Label>
+                        <Input
+                            value={form.address || ''}
+                            onChange={(e) => handleChange('address', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <Label>Préfixe facture</Label>
+                        <Input
+                            value={form.invoicePrefix || ''}
+                            onChange={(e) => handleChange('invoicePrefix', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <Label>Plan *</Label>
+                        <select
+                            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+                            value={form.planId || ''}
+                            onChange={(e) => handleChange('planId', e.target.value)}
+                        >
+                            <option value="">Sélectionner un plan</option>
+                            {loadingPlans ? (
+                                <option disabled>Chargement...</option>
+                            ) : (
+                                plans.map((plan) => (
+                                    <option key={plan.id} value={plan.id}>
+                                        {plan.name}
+                                    </option>
+                                ))
+                            )}
+                        </select>
+                    </div>
+
+                    <Button onClick={handleSubmit} disabled={submitting} className="w-full mt-2">
+                        {submitting ? (
+                            <Loader2 className="animate-spin w-4 h-4" />
+                        ) : editingId ? (
+                            'Mettre à jour'
+                        ) : (
+                            'Créer'
+                        )}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
 }
