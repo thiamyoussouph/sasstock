@@ -36,7 +36,7 @@ export default function SupplierPage() {
         if (companyId) {
             fetchSuppliers(companyId);
         }
-    }, [companyId,fetchSuppliers]);
+    }, [companyId, fetchSuppliers]);
 
     const handleSubmit = async () => {
         if (!form.name.trim()) {
@@ -64,8 +64,12 @@ export default function SupplierPage() {
 
             setForm({ name: '', phone: '', email: '', address: '' });
             setEditingId(null);
-        } catch (e: any) {
-            toast.error(e.message || "Erreur lors de l'enregistrement");
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                toast.error(e.message);
+            } else {
+                toast.error("Erreur lors de l'enregistrement");
+            }
         } finally {
             setLoading(false);
         }

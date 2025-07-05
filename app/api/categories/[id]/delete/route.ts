@@ -7,9 +7,9 @@ const prisma = new PrismaClient();
 // ✅ Typage correct pour les handlers App Router
 export async function DELETE(
   req: NextRequest,
-  context: { params: { id: string } } // 👈 ce type doit être exactement celui-ci
+  context: { params: Promise<{ id: string }> } // 👈 ce type doit être exactement celui-ci
 ) {
-  const { id } = context.params;
+  const { id } = (await context.params);
 
   try {
     await prisma.category.delete({ where: { id } });

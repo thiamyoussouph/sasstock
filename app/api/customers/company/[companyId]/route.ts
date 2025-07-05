@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
     req: NextRequest,
-    context: { params: { companyId: string } } // <✅ c’est bien ici que `params` est accessible
+    context: { params: Promise<{ companyId: string }> } // <✅ c’est bien ici que `params` est accessible
 ) {
     try {
-        const { companyId } = context.params;
+        const { companyId } = (await context.params);
 
         const customers = await prisma.customer.findMany({
             where: { companyId },

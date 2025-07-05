@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-export async function PUT(_req: Request, { params }: { params: { id: string } }) {
+export async function PUT(_req: Request, props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     const saleId = params.id;
 
     try {

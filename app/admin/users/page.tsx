@@ -24,7 +24,7 @@ export default function UserManagementPage() {
                 toast.error("Erreur lors du chargement des utilisateurs : " + err.message);
             });
         }
-    }, [currentUser]);
+    }, [currentUser, fetchUsers]);
 
     useEffect(() => {
         if (selectedUser) {
@@ -49,8 +49,12 @@ export default function UserManagementPage() {
         try {
             await updateUser({ id: user.id, status: !user.status });
             toast.success(`Utilisateur ${user.status ? 'désactivé' : 'activé'}`);
-        } catch (err: any) {
-            toast.error("Erreur lors du changement de statut : " + err.message);
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                toast.error(e.message);
+            } else {
+                toast.error("Erreur lors de l'enregistrement");
+            }
         }
     };
 
@@ -81,12 +85,15 @@ export default function UserManagementPage() {
                 await createUser(payload);
                 toast.success("Utilisateur créé");
             }
-
             setForm({});
             setSelectedUser(null);
             fetchUsers(companyId);
-        } catch (e: any) {
-            toast.error("Erreur lors de la soumission : " + (e.message || 'inconnue'));
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                toast.error(e.message);
+            } else {
+                toast.error("Erreur lors de l'enregistrement");
+            }
         } finally {
             setSubmitting(false);
         }

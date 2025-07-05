@@ -11,13 +11,13 @@ const updateSchema = z.object({
     creditLimit: z.number().optional(),
 });
 
-export async function PUT(req: NextRequest, context: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
     try {
         const body = await req.json();
         const data = updateSchema.parse(body);
 
         const updated = await prisma.customer.update({
-            where: { id: context.params.id }, // ✅ correction ici
+            where: { id: (await context.params).id }, // ✅ correction ici
             data,
         });
 

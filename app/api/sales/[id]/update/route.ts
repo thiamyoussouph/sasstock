@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = context.params.id; // ✅ Accès correct au paramètre dynamique
+    const id = (await context.params).id; // ✅ Accès correct au paramètre dynamique
     const body = await req.json();
 
     console.log('BODY PAYLOAD FOR UPDATE:', body);

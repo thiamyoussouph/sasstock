@@ -2,7 +2,8 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     try {
         const customer = await prisma.customer.findUnique({
             where: { id: params.id },
@@ -11,6 +12,6 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
             ? NextResponse.json(customer)
             : NextResponse.json({ message: 'Client introuvable' }, { status: 404 });
     } catch (error) {
-        return NextResponse.json({ message: 'Erreur serveur' }, { status: 500 });
+        return NextResponse.json({ message: 'Erreur serveur',error }, { status: 500 });
     }
 }

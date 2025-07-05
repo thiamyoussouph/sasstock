@@ -2,10 +2,8 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(
-    req: NextRequest,
-    { params }: { params: { companyId: string } }
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ companyId: string }> }) {
+    const params = await props.params;
     try {
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page') || '1', 10);

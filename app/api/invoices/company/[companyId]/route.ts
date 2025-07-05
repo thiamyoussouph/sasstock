@@ -2,7 +2,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(_: Request, { params }: { params: { companyId: string } }) {
+export async function GET(_: Request, props: { params: Promise<{ companyId: string }> }) {
+    const params = await props.params;
     try {
         const invoices = await prisma.invoice.findMany({
             where: { companyId: params.companyId },

@@ -2,10 +2,8 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-export async function GET(
-    _req: Request,
-    { params }: { params: { companyId: string } }
-) {
+export async function GET(_req: Request, props: { params: Promise<{ companyId: string }> }) {
+    const params = await props.params;
     try {
         const suppliers = await prisma.supplier.findMany({
             where: { companyId: params.companyId },

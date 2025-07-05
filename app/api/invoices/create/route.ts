@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
         // ✅ Calculer le total avec validation
         const calculatedTotal = invoiceItems.reduce(
-            (acc: number, item: any) => {
+            (acc: number, item: { quantity: number; unitPrice: number; total?: number }) => {
                 const itemTotal = item.total ?? (item.quantity * item.unitPrice);
                 return acc + itemTotal;
             },
@@ -82,12 +82,12 @@ export async function POST(req: Request) {
                 note: note || null,              // ✅ null au lieu de undefined
                 comment: comment || null,        // ✅ null au lieu de undefined
                 invoiceItems: {
-                    create: invoiceItems.map((item: any) => ({
+                    create: invoiceItems.map((item: { name: string; quantity: number; unitPrice: number; total?: number }) => ({
                         name: item.name,
                         quantity: item.quantity,
                         unitPrice: item.unitPrice,
                         total: item.total ?? (item.quantity * item.unitPrice),
-                    })),
+                    }))
                 },
             },
             include: {

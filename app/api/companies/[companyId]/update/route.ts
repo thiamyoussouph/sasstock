@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CompanySchema } from '@/types/company';
 
-export async function PUT(req: NextRequest, context: { params: { companyId: string } }) {
-    const { companyId } = context.params;
+export async function PUT(req: NextRequest, context: { params: Promise<{ companyId: string }> }) {
+    const { companyId } = (await context.params);
 
     try {
         const body = await req.json();

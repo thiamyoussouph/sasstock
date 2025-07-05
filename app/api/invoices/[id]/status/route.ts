@@ -5,7 +5,8 @@ import jwt from 'jsonwebtoken';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'super_secret_ladygest';
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
 
     if (!token) {

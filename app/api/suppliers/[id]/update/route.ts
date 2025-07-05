@@ -9,7 +9,8 @@ const updateSchema = z.object({
     address: z.string().optional(),
 });
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     try {
         const body = await req.json();
         const data = updateSchema.parse(body);
