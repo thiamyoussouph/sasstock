@@ -34,7 +34,7 @@ export default function SubscriptionTable() {
 
     useEffect(() => {
         fetchSubscriptions();
-    }, [page]);
+    }, [page,fetchSubscriptions]);
 
     return (
         <div className="bg-white dark:bg-gray-900 p-4 rounded shadow mt-6">

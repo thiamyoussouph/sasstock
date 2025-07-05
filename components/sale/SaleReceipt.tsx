@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useProductStore } from '@/stores/product-store';
@@ -14,6 +13,23 @@ import { toast } from 'react-toastify';
 import ProductSearchSelect from '@/components/product/SelectSearchProduit';
 import { Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+
+interface SaleItem {
+    productId: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    price: number;
+    priceHalf?: number;
+    priceWholesale?: number;
+    codeBar?: string;
+}
 
 export default function CreateSalePage() {
     const router = useRouter();
@@ -27,10 +43,7 @@ export default function CreateSalePage() {
 
     const codeBarInputRef = useRef<HTMLInputElement>(null);
     const [scannedCode, setScannedCode] = useState('');
-
-    const [description, setDescription] = useState('');
-    const [items, setItems] = useState<any[]>([]);
-    const [selectedProductId, setSelectedProductId] = useState('');
+    const [items, setItems] = useState<SaleItem[]>([]);
     const [customerId, setCustomerId] = useState('');
     const [paymentType, setPaymentType] = useState<'CASH' | 'MOBILE_MONEY' | 'CARD'>('CASH');
     const [saleMode, setSaleMode] = useState<'DETAIL' | 'DEMI_GROS' | 'GROS'>('DETAIL');
@@ -40,7 +53,7 @@ export default function CreateSalePage() {
             fetchProducts(companyId);
             fetchCustomers(companyId);
         }
-    }, [companyId]);
+    }, [companyId, fetchProducts, fetchCustomers]);
 
     useEffect(() => {
         codeBarInputRef.current?.focus();
@@ -57,37 +70,47 @@ export default function CreateSalePage() {
         codeBarInputRef.current?.focus();
     };
 
-    const handleAddProduct = (product: any) => {
+    const handleAddProduct = (product: Product) => {
         const exists = items.find(i => i.productId === product.id);
-        const price = saleMode === 'GROS' ? product.priceWholesale || product.price : saleMode === 'DEMI_GROS' ? product.priceHalf || product.price : product.price;
+        const price =
+            saleMode === 'GROS'
+                ? product.priceWholesale ?? product.price
+                : saleMode === 'DEMI_GROS'
+                    ? product.priceHalf ?? product.price
+                    : product.price;
 
         if (exists) {
-            setItems(items.map(i =>
-                i.productId === product.id
-                    ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice }
-                    : i
-            ));
+            setItems(prev =>
+                prev.map(i =>
+                    i.productId === product.id
+                        ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice }
+                        : i
+                )
+            );
         } else {
-            setItems([...items, {
-                productId: product.id,
-                name: product.name,
-                quantity: 1,
-                unitPrice: price,
-                total: price,
-            }]);
+            setItems(prev => [
+                ...prev,
+                {
+                    productId: product.id,
+                    name: product.name,
+                    quantity: 1,
+                    unitPrice: price,
+                    total: price,
+                },
+            ]);
         }
     };
 
     const handleRemoveProduct = (id: string) => {
-        setItems(items.filter(i => i.productId !== id));
+        setItems(prev => prev.filter(i => i.productId !== id));
     };
 
     const handleQuantityChange = (id: string, qty: number) => {
-        setItems(items.map(i =>
-            i.productId === id
-                ? { ...i, quantity: qty, total: qty * i.unitPrice }
-                : i
-        ));
+        setItems(prev =>
+            prev.map(i =>
+                i.productId === id ? { ...i, quantity: qty, total: qty * i.unitPrice } : i
+            )
+        );
     };
 
     const total = items.reduce((acc, i) => acc + i.total, 0);
@@ -108,22 +131,30 @@ export default function CreateSalePage() {
                     unitPrice: i.unitPrice,
                     total: i.total,
                 })),
-                payments: [{
-                    amount: total,
-                    montantRecu: total,
-                    monnaieRendue: 0,
-                    method: paymentType,
-                }]
+                payments: [
+                    {
+                        amount: total,
+                        montantRecu: total,
+                        monnaieRendue: 0,
+                        method: paymentType,
+                    },
+                ],
             });
 
             toast.success('Vente enregistrée');
             router.push('/admin/sales');
-        } catch (err: any) {
-            toast.error(err.message || 'Erreur de création');
+        } catch (err) {
+            if (err instanceof Error) {
+                toast.error(err.message);
+            } else {
+                toast.error('Erreur de création');
+            }
         }
     };
 
-    const clientName = customerId ? customers.find(c => c.id === customerId)?.name : 'Client passager';
+    const clientName = customerId
+        ? customers.find(c => c.id === customerId)?.name
+        : 'Client passager';
 
     return (
         <div className="p-6 space-y-6 bg-white rounded shadow grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -150,7 +181,7 @@ export default function CreateSalePage() {
                         <select
                             className="w-full border px-3 py-2 rounded"
                             value={saleMode}
-                            onChange={(e) => setSaleMode(e.target.value as any)}
+                            onChange={(e) => setSaleMode(e.target.value as typeof saleMode)}
                         >
                             <option value="DETAIL">Détail</option>
                             <option value="DEMI_GROS">Demi-gros</option>
@@ -165,7 +196,7 @@ export default function CreateSalePage() {
                         <select
                             className="w-full border px-3 py-2 rounded"
                             value={paymentType}
-                            onChange={(e) => setPaymentType(e.target.value as any)}
+                            onChange={(e) => setPaymentType(e.target.value as typeof paymentType)}
                         >
                             <option value="CASH">Espèces</option>
                             <option value="MOBILE_MONEY">Mobile Money</option>
@@ -215,8 +246,8 @@ export default function CreateSalePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {items.map((item, idx) => (
-                                    <tr key={idx}>
+                                {items.map((item) => (
+                                    <tr key={item.productId}>
                                         <td className="p-2">{item.name}</td>
                                         <td className="p-2 text-right">
                                             <Input
@@ -241,7 +272,9 @@ export default function CreateSalePage() {
                     </div>
                 )}
 
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit}>Enregistrer</Button>
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit}>
+                    Enregistrer
+                </Button>
             </div>
 
             {/* Reçu */}
@@ -263,8 +296,8 @@ export default function CreateSalePage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {items.map((item, idx) => (
-                            <tr key={idx}>
+                        {items.map((item) => (
+                            <tr key={item.productId}>
                                 <td>{item.name}</td>
                                 <td className="text-right">{item.quantity}</td>
                                 <td className="text-right">{item.unitPrice.toFixed(2)}</td>

@@ -21,8 +21,13 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ message: 'Permissions mises à jour avec succès' });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Permission update error:', err);
-    return NextResponse.json({ error: err.message || 'Erreur serveur' }, { status: 500 });
+
+    if (err instanceof Error) {
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ error: 'Erreur serveur inconnue' }, { status: 500 });
   }
 }

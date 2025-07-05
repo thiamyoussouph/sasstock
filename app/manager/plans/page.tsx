@@ -108,8 +108,7 @@ export default function PlanManager() {
 
   const handleEdit = (plan: Plan) => {
     setEditingPlan(plan);
-    const { id: _id, ...rest } = plan;
-    setForm(rest);
+    setForm(plan);
   };
 
   return (

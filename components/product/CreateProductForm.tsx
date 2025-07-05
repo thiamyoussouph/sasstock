@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/auth-store';
 import { useCategoryStore } from '@/stores/category-store';
 import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function CreateProductForm() {
     const { user } = useAuthStore();
@@ -21,7 +22,7 @@ export default function CreateProductForm() {
     const [priceWholesale, setPriceWholesale] = useState('');
     const [unit, setUnit] = useState('');
     const [stockMin, setStockMin] = useState('');
-    const [quantity, setQuantity] = useState(''); // ✅ Ajouté
+    const [quantity, setQuantity] = useState('');
     const [description, setDescription] = useState('');
     const [codeBar, setCodeBar] = useState('');
     const [mainImage, setMainImage] = useState<File | null>(null);
@@ -31,7 +32,7 @@ export default function CreateProductForm() {
 
     useEffect(() => {
         if (companyId) fetchCategories(companyId);
-    }, [companyId]);
+    }, [companyId, fetchCategories]);
 
     const handleSubmit = async () => {
         if (!name.trim() || !price || !unit || !categoryId) {
@@ -46,7 +47,7 @@ export default function CreateProductForm() {
         if (priceWholesale) formData.append('priceWholesale', priceWholesale);
         formData.append('unit', unit);
         if (stockMin) formData.append('stockMin', stockMin);
-        if (quantity) formData.append('quantity', quantity); // ✅ Ajouté
+        if (quantity) formData.append('quantity', quantity);
         if (codeBar) formData.append('codeBar', codeBar);
         if (description) formData.append('description', description);
         if (mainImage) formData.append('mainImage', mainImage);
@@ -72,14 +73,18 @@ export default function CreateProductForm() {
             setPriceWholesale('');
             setUnit('');
             setStockMin('');
-            setQuantity(''); // ✅ Réinitialisation
+            setQuantity('');
             setCodeBar('');
             setDescription('');
             setMainImage(null);
             setImagePreview('');
             setCategoryId('');
-        } catch (e: any) {
-            toast.error(e.message || 'Erreur inconnue');
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                toast.error(e.message || 'Erreur inconnue');
+            } else {
+                toast.error('Erreur inconnue');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -173,7 +178,13 @@ export default function CreateProductForm() {
                 />
                 {imagePreview && (
                     <div className="mt-2 relative w-fit">
-                        <img src={imagePreview} alt="Aperçu" className="w-32 h-32 object-cover rounded border" />
+                        <Image
+                            src={imagePreview}
+                            alt="Aperçu"
+                            width={128}
+                            height={128}
+                            className="object-cover rounded border"
+                        />
                         <button
                             onClick={() => {
                                 setMainImage(null);

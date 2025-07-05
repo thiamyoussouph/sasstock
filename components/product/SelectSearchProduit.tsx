@@ -24,7 +24,6 @@ interface Props {
 export default function ProductSearchSelect({ products, onSelect }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
-    const [selectedLabel, setSelectedLabel] = useState('');
 
     const filtered = searchTerm.length >= 1
         ? products.filter((p) =>
@@ -36,7 +35,6 @@ export default function ProductSearchSelect({ products, onSelect }: Props) {
 
     const handleSelect = (product: Product) => {
         setSelectedProductId(product.id);
-        setSelectedLabel(`${product.name}${product.codeBar ? ` - ${product.codeBar}` : ''}`);
         setSearchTerm(`${product.name}${product.codeBar ? ` - ${product.codeBar}` : ''}`);
     };
 
@@ -45,7 +43,6 @@ export default function ProductSearchSelect({ products, onSelect }: Props) {
             onSelect(selectedProductId);
             setSearchTerm('');
             setSelectedProductId('');
-            setSelectedLabel('');
         }
     };
 

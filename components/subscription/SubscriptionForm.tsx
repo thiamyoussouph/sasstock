@@ -9,8 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-toastify';
 
+interface FormData {
+    companyId: string;
+    planId: string;
+    durationInMonths: number;
+}
+
 export default function SubscriptionForm() {
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<FormData>({
         companyId: '',
         planId: '',
         durationInMonths: 1,
@@ -23,10 +29,10 @@ export default function SubscriptionForm() {
     useEffect(() => {
         fetchCompanies();
         fetchPlans();
-    }, []);
+    }, [fetchCompanies, fetchPlans]); // ✅ Dépendances ajoutées
 
-    const handleChange = (key: string, value: any) => {
-        setForm({ ...form, [key]: value });
+    const handleChange = <K extends keyof FormData>(key: K, value: FormData[K]) => {
+        setForm((prev) => ({ ...prev, [key]: value }));
     };
 
     const handleSubmit = async () => {
@@ -35,8 +41,9 @@ export default function SubscriptionForm() {
             toast.success('Abonnement créé avec succès');
             fetchSubscriptions();
             setForm({ companyId: '', planId: '', durationInMonths: 1 });
-        } catch (e: any) {
-            toast.error(e.message || 'Erreur lors de la création');
+        } catch (e) {
+            const error = e as Error;
+            toast.error(error.message || 'Erreur lors de la création');
         }
     };
 
@@ -79,7 +86,7 @@ export default function SubscriptionForm() {
                     value={form.durationInMonths}
                     min={1}
                     max={24}
-                    onChange={(e) => handleChange('durationInMonths', +e.target.value)}
+                    onChange={(e) => handleChange('durationInMonths', Number(e.target.value))}
                 />
             </div>
 

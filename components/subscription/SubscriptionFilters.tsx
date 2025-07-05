@@ -23,7 +23,7 @@ export default function SubscriptionFilters() {
     useEffect(() => {
         fetchCompanies();
         fetchPlans();
-    }, []);
+    }, [fetchPlans, fetchCompanies]);
 
     const applyFilters = () => {
         setFilters(filters);

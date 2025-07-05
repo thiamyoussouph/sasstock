@@ -42,7 +42,8 @@ export default function PaymentModal({ saleId, isOpen, onClose, onSubmit }: Paym
                     setMontantRecu(data.amountRemaining);
                     setLoading(false);
                 })
-                .catch(err => {
+                .catch((err) => {
+                    console.error('Erreur chargement paiement :', err);
                     toast.error('Erreur chargement paiement');
                     setLoading(false);
                 });

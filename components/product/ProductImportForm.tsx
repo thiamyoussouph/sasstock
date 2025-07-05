@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function ProductImportForm() {
-    const { user } = useAuthStore(); // ✅
+    const { user } = useAuthStore();
     const companyId = user?.company?.id;
     const [file, setFile] = useState<File | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +39,7 @@ export default function ProductImportForm() {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('companyId', companyId!); // ✅
+        formData.append('companyId', companyId!);
 
         setIsLoading(true);
         try {
@@ -56,8 +56,12 @@ export default function ProductImportForm() {
 
             toast.success(result.message || 'Produits importés avec succès !');
             setFile(null);
-        } catch (err: any) {
-            toast.error(err.message || 'Erreur inconnue.');
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                toast.error(err.message || 'Erreur inconnue.');
+            } else {
+                toast.error('Erreur inconnue.');
+            }
         } finally {
             setIsLoading(false);
         }
