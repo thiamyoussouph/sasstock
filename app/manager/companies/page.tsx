@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Company } from '@/types/company';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { Pencil, CreditCard, Users } from 'lucide-react';
 
 export default function CompanyPage() {
     const {
@@ -126,13 +127,30 @@ export default function CompanyPage() {
                                         {company.plan?.name || <span className="text-gray-400">N/A</span>}
                                     </td>
                                     <td className="p-2 space-x-2">
-                                        <Button className="bg-yellow-400 hover:bg-yellow-500" size="sm" onClick={() => handleEdit(company)}>
-                                            Modifier
+                                        <Button
+                                            className="bg-yellow-400 hover:bg-yellow-500"
+                                            size="icon"
+                                            onClick={() => handleEdit(company)}
+                                        >
+                                            <Pencil className="w-4 h-4" />
                                         </Button>
-                                        <Button className="bg-green-500 hover:bg-green-600" size="sm">
-                                            Abonnement
+                                        <Button
+                                            className="bg-green-500 hover:bg-green-600"
+                                            size="icon"
+                                        >
+                                            <CreditCard className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                            size="icon"
+                                            onClick={() => {
+                                                window.location.href = `/manager/companies/${company.id}/users`;
+                                            }}
+                                        >
+                                            <Users className="w-4 h-4" />
                                         </Button>
                                     </td>
+
                                 </tr>
                             ))
                         ) : (
