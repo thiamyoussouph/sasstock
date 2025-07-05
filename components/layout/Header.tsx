@@ -25,7 +25,7 @@ export function AdminHeader() {
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/';
+    // window.location.href = '/';
   };
 
   const initials = user?.name
@@ -41,7 +41,7 @@ export function AdminHeader() {
       </h1>
 
       <div className="flex items-center gap-4">
-        {mounted && (
+        {/* {mounted && (
           <Button
             variant="ghost"
             size="icon"
@@ -50,7 +50,7 @@ export function AdminHeader() {
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </Button>
-        )}
+        )} */}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

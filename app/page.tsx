@@ -15,7 +15,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, user, error, loading } = useAuthStore();
+  const { login, user, error, loading, hydrated } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,11 +24,12 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState('');
 
   // 🔐 Redirige automatiquement si déjà connecté
+
   useEffect(() => {
-    if (user) {
+    if (hydrated && user) {
       router.push('/admin/dashboard');
     }
-  }, [user, router]);
+  }, [hydrated, user]);
 
   const validateForm = () => {
     let valid = true;

@@ -3,7 +3,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Modèle Company simplifié (reprend les infos nécessaires à l'affichage)
 interface Company {
     id: string;
     name: string;
@@ -14,7 +13,6 @@ interface Company {
     stampUrl?: string;
 }
 
-// User étendu avec la relation à la company
 interface User {
     id: string;
     name: string;
@@ -22,7 +20,7 @@ interface User {
     role: string | null;
     permissions: string[];
     companyId: string;
-    company: Company; // <= ici
+    company: Company;
 }
 
 interface AuthStore {
@@ -30,9 +28,11 @@ interface AuthStore {
     token: string | null;
     loading: boolean;
     error: string | null;
+    hydrated: boolean;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
     setUser: (user: User) => void;
+    setHydrated: () => void; // ✅ méthode pour forcer hydrated à true
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -42,8 +42,9 @@ export const useAuthStore = create<AuthStore>()(
             token: null,
             loading: false,
             error: null,
+            hydrated: false,
 
-            login: async (email: string, password: string) => {
+            login: async (email, password) => {
                 set({ loading: true, error: null });
 
                 try {
@@ -58,7 +59,7 @@ export const useAuthStore = create<AuthStore>()(
                     if (!res.ok) throw new Error(data.message || 'Erreur de connexion');
 
                     set({
-                        user: data.user, // `data.user.company` doit être présent dans la réponse
+                        user: data.user,
                         token: data.token,
                         loading: false,
                         error: null,
@@ -69,14 +70,21 @@ export const useAuthStore = create<AuthStore>()(
             },
 
             logout: () => {
+                localStorage.removeItem('auth-storage');
                 set({ user: null, token: null });
+                window.location.href = '/';
             },
 
             setUser: (user) => set({ user }),
+
+            setHydrated: () => set({ hydrated: true }), // ✅
         }),
         {
             name: 'auth-storage',
+            // ✅ méthode qui sera appelée après rehydratation
+            onRehydrateStorage: () => (state) => {
+                state?.setHydrated?.(); // appel de la méthode définie
+            },
         }
     )
 );
-
