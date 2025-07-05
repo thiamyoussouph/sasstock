@@ -3,6 +3,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
+import { Prisma } from '@prisma/client';
+
+interface ExcelRow {
+    [key: string]: string | number | boolean | Date | undefined;
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -19,7 +24,7 @@ export async function POST(req: NextRequest) {
         const workbook = XLSX.read(buffer, { type: 'buffer' });
 
         const sheetName = workbook.SheetNames[0];
-        const rows = XLSX.utils.sheet_to_json<any>(workbook.Sheets[sheetName]);
+        const rows = XLSX.utils.sheet_to_json<ExcelRow>(workbook.Sheets[sheetName]);
 
         console.log(`✅ ${rows.length} lignes lues dans le fichier Excel.`);
 
@@ -28,21 +33,21 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Le fichier est vide.' }, { status: 400 });
         }
 
-        const createdProducts: any[] = [];
-        const duplicates: any[] = [];
+        const createdProducts: Prisma.ProductCreateManyInput[] = [];
+        const duplicates: ExcelRow[] = [];
         const newCategories: Set<string> = new Set();
 
         for (let index = 0; index < rows.length; index++) {
             const row = rows[index];
             console.log(`🔍 Traitement ligne ${index + 1}:`, row);
 
-            const name = row['Nom'];
-            const category = row['Catégorie'];
-            const price = row['Prix détail'];
-            const unit = row['Unité'];
+            const name = row['Nom'] as string;
+            const category = row['Catégorie'] as string;
+            const price = row['Prix détail'] as number;
+            const unit = row['Unité'] as string;
 
             const codeBar = row['Code barre'];
-            const description = row['Description'];
+            const description = row['Description'] as string;
             const purchasePrice = row['Prix achat'];
             const priceHalf = row['Prix demi-gros'];
             const priceWholesale = row['Prix gros'];
@@ -82,21 +87,21 @@ export async function POST(req: NextRequest) {
                 console.log(`📁 Catégorie créée : ${category}`);
             }
 
-            const productData = {
+            const productData: Prisma.ProductCreateManyInput = {
                 name,
                 companyId,
                 categoryId: cat.id,
                 codeBar: codeBar?.toString() || undefined,
                 description: description || '',
-                purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
-                price: parseFloat(price),
-                priceHalf: priceHalf ? parseFloat(priceHalf) : undefined,
-                priceWholesale: priceWholesale ? parseFloat(priceWholesale) : undefined,
+                purchasePrice: purchasePrice ? parseFloat(purchasePrice.toString()) : undefined,
+                price: parseFloat(price.toString()),
+                priceHalf: priceHalf ? parseFloat(priceHalf.toString()) : undefined,
+                priceWholesale: priceWholesale ? parseFloat(priceWholesale.toString()) : undefined,
                 unit,
-                stockMin: stockMin ? parseInt(stockMin) : 0,
-                quantity: quantity ? parseInt(quantity) : 0,
+                stockMin: stockMin ? parseInt(stockMin.toString()) : 0,
+                quantity: quantity ? parseInt(quantity.toString()) : 0,
                 isActive: isActive === false || isActive === 'false' ? false : true,
-                dateExpiration: dateExpiration ? new Date(dateExpiration) : undefined
+                dateExpiration: dateExpiration ? new Date(dateExpiration.toString()) : undefined
             };
 
             createdProducts.push(productData);

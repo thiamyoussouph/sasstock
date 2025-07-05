@@ -1,33 +1,33 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 
-export async function GET(req: NextRequest, props: { params: Promise<{ companyId: string }> }) {
+export async function GET(
+    req: NextRequest,
+    props: { params: Promise<{ companyId: string }> }
+) {
     const params = await props.params;
+
     try {
         const { companyId } = params;
         const { searchParams } = new URL(req.url);
 
         const page = parseInt(searchParams.get('page') || '1', 10);
-        const limit = parseInt(searchParams.get('limit') || '15', 10); // ✅ dynamique
+        const limit = parseInt(searchParams.get('limit') || '15', 10);
         const search = searchParams.get('search')?.toLowerCase() || '';
         const categoryId = searchParams.get('categoryId') || '';
 
         const skip = (page - 1) * limit;
 
-        const whereClause: any = {
+        const whereClause: Prisma.ProductWhereInput = {
             companyId,
+            ...(search && {
+                name: {
+                    contains: search,
+                },
+            }),
+            ...(categoryId && { categoryId }),
         };
-
-        if (search) {
-            whereClause.name = {
-                contains: search,
-                mode: 'insensitive',
-            };
-        }
-
-        if (categoryId) {
-            whereClause.categoryId = categoryId;
-        }
 
         const [products, total] = await Promise.all([
             prisma.product.findMany({

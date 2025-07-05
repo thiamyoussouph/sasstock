@@ -1,12 +1,24 @@
 import { prisma } from "@/lib/prisma";
+import { StockType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
+
+type MovementItemInput = {
+    productId: string;
+    quantity: number;
+    purchasePrice: number;
+};
 
 export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
     try {
         const id = params.id;
         const body = await req.json();
-        const { type, description, createdBy, items } = body;
+        const { type, description, createdBy, items }: {
+            type: string;
+            description?: string;
+            createdBy?: string;
+            items: MovementItemInput[];
+        } = body;
 
         // 1. Récupère les anciens items
         const previousItems = await prisma.stockMovementItem.findMany({
@@ -26,11 +38,11 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
         const updatedMovement = await prisma.stockMovement.update({
             where: { id },
             data: {
-                type,
+                type: type as StockType,
                 description,
                 createdBy,
                 items: {
-                    create: items.map((item: any) => ({
+                    create: items.map((item) => ({
                         productId: item.productId,
                         quantity: item.quantity,
                         purchasePrice: item.purchasePrice,

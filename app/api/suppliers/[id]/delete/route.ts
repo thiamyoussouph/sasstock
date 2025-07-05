@@ -9,6 +9,6 @@ export async function DELETE(_: Request, props: { params: Promise<{ id: string }
         });
         return NextResponse.json({ message: 'Fournisseur supprimé' });
     } catch (error) {
-        return NextResponse.json({ message: 'Erreur serveur' }, { status: 500 });
+        return NextResponse.json({ message: 'Erreur serveur',error }, { status: 500 });
     }
 }

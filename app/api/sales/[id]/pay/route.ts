@@ -69,11 +69,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
             payment,
             status: nouveauStatut,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Erreur paiement :', error);
-        return NextResponse.json(
-            { message: error.message || 'Erreur serveur' },
-            { status: 500 }
-        );
+
+        if (error instanceof Error) {
+            return NextResponse.json({ message: error.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ message: 'Erreur serveur inconnue' }, { status: 500 });
     }
 }

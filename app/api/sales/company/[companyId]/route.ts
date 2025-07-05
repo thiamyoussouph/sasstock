@@ -1,6 +1,6 @@
-// /api/sales/company/[companyId]/route.ts
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 
 export async function GET(req: NextRequest, props: { params: Promise<{ companyId: string }> }) {
     const params = await props.params;
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ companyId
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
 
-        const where: any = {
+        const where: Prisma.SaleWhereInput = {
             companyId: params.companyId,
         };
 
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ companyId
             }
             if (endDate) {
                 const date = new Date(endDate);
-                date.setDate(date.getDate() + 1); // inclure la date entière
+                date.setDate(date.getDate() + 1); // inclure toute la journée
                 where.createdAt.lte = date;
             }
         }

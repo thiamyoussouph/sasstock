@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Trash2 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
@@ -290,7 +289,7 @@ export default function CreateInvoiceForm() {
                     <label className="block text-sm font-medium mb-1">Date de facture</label>
                     <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
 
-                    <label className="block text-sm font-medium mb-1 mt-4">Date d'échéance</label>
+                    <label className="block text-sm font-medium mb-1 mt-4">Date d&apos;échéance</label>
                     <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                 </div>
 

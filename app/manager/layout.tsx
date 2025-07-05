@@ -1,6 +1,5 @@
 'use client';
 import '@/app/globals.css';
-import { AdminHeader } from '@/components/layout/Header';
 import { ManagerHeader } from '@/components/layout/Header-manager';
 import { ManagerSidebar } from '@/components/layout/Sidebar-manager';
 import { ThemeProvider } from '@/components/providers/theme-provider';

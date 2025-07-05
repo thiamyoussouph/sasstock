@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
 export async function GET(req: Request) {
     try {
@@ -16,7 +17,6 @@ export async function GET(req: Request) {
             limit: searchParams.get('limit') || '10',
         };
 
-        // ✅ Validation Zod (sans status)
         const querySchema = z.object({
             companyId: z.string().uuid().optional(),
             planId: z.string().uuid().optional(),
@@ -35,7 +35,7 @@ export async function GET(req: Request) {
         const { companyId, planId, startDate, endDate, page, limit } = parsed.data;
         const skip = (page - 1) * limit;
 
-        const where: any = {};
+        const where: Prisma.SubscriptionWhereInput = {};
         if (companyId) where.companyId = companyId;
         if (planId) where.planId = planId;
 
@@ -44,8 +44,6 @@ export async function GET(req: Request) {
             if (startDate) where.startDate.gte = new Date(startDate);
             if (endDate) where.startDate.lte = new Date(endDate);
         }
-
-        console.log('[QUERY_WHERE]', JSON.stringify(where, null, 2));
 
         const [subscriptions, totalItems] = await Promise.all([
             prisma.subscription.findMany({
@@ -71,14 +69,14 @@ export async function GET(req: Request) {
             },
             { status: 200 }
         );
-    } catch (error: any) {
-        console.error('[GET_SUBSCRIPTIONS_ERROR]', error);
-        return NextResponse.json(
-            {
-                message: 'Erreur serveur',
-                error: error.message ?? 'Erreur inconnue',
-            },
-            { status: 500 }
-        );
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(error);
+            return NextResponse.json(
+                { message: 'Erreur serveur', error: error.message },
+                { status: 500 }
+            );
+        }
+        return NextResponse.json({ message: 'Erreur inconnue' }, { status: 500 });
     }
 }

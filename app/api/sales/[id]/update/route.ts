@@ -1,15 +1,29 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { PaymentType, SaleMode } from '@prisma/client';
+
+interface SaleItemInput {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+interface PaymentInput {
+  amount: number;
+  montantRecu: number;
+  monnaieRendue: number;
+  method: PaymentType;
+  note?: string | null;
+}
 
 export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = (await context.params).id; // ✅ Accès correct au paramètre dynamique
+    const id = (await context.params).id;
     const body = await req.json();
-
-    console.log('BODY PAYLOAD FOR UPDATE:', body);
 
     const {
       customerId,
@@ -20,6 +34,15 @@ export async function PUT(
       total,
       saleItems,
       payments,
+    }: {
+      customerId: string | null;
+      paymentType: PaymentType;
+      saleMode: string;
+      status: string;
+      tvaId?: string | null;
+      total: number;
+      saleItems: SaleItemInput[];
+      payments: PaymentInput[];
     } = body;
 
     if (!Array.isArray(saleItems) || saleItems.length === 0) {
@@ -55,12 +78,12 @@ export async function PUT(
       data: {
         customerId,
         paymentType,
-        saleMode,
+        saleMode: saleMode as SaleMode,
         status,
         tvaId,
         total,
         saleItems: {
-          create: saleItems.map((item: any) => ({
+          create: saleItems.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
@@ -68,7 +91,7 @@ export async function PUT(
           })),
         },
         payments: {
-          create: payments.map((p: any) => ({
+          create: payments.map((p) => ({
             amount: p.amount,
             montantRecu: p.montantRecu,
             monnaieRendue: p.monnaieRendue,

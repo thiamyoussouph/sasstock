@@ -19,13 +19,10 @@ export default function InvoiceList() {
     const [search, setSearch] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
-    const [mounted, setMounted] = useState(false);
     const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
     const router = useRouter();
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+
 
     useEffect(() => {
         if (companyId) {

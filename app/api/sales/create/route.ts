@@ -2,6 +2,21 @@ import { prisma } from '@/lib/prisma';
 import { PaymentType } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
+type SaleItemInput = {
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+};
+
+type PaymentInput = {
+    amount: number;
+    montantRecu: number;
+    monnaieRendue: number;
+    method: string;
+    note?: string;
+};
+
 export async function POST(req: NextRequest) {
     try {
         const data = await req.json();
@@ -10,7 +25,6 @@ export async function POST(req: NextRequest) {
         const count = await prisma.sale.count({ where: { companyId: data.companyId } });
         const numberSale = `COM-${new Date().getFullYear()}-${(count + 1).toString().padStart(5, '0')}`;
 
-        // Création de la vente
         const sale = await prisma.sale.create({
             data: {
                 companyId: data.companyId,
@@ -23,7 +37,7 @@ export async function POST(req: NextRequest) {
                 status: data.status,
                 numberSale,
                 saleItems: {
-                    create: data.saleItems.map((item: any) => ({
+                    create: (data.saleItems as SaleItemInput[]).map((item) => ({
                         productId: item.productId,
                         quantity: item.quantity,
                         unitPrice: item.unitPrice,
@@ -31,7 +45,7 @@ export async function POST(req: NextRequest) {
                     })),
                 },
                 payments: {
-                    create: data.payments.map((p: any) => ({
+                    create: (data.payments as PaymentInput[]).map((p) => ({
                         amount: p.amount,
                         montantRecu: p.montantRecu,
                         monnaieRendue: p.monnaieRendue,
@@ -43,7 +57,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Mettre à jour le stock des produits vendus
-        for (const item of data.saleItems) {
+        for (const item of data.saleItems as SaleItemInput[]) {
             await prisma.product.update({
                 where: { id: item.productId },
                 data: { quantity: { decrement: item.quantity } },

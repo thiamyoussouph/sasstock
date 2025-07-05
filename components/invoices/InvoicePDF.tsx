@@ -33,7 +33,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     table: {
-        display: 'table',
         width: 'auto',
         marginVertical: 10,
     },
@@ -142,10 +141,13 @@ export default function InvoicePDF({
 
                 {(signatureUrl || stampUrl) && (
                     <View style={{ flexDirection: 'row', marginTop: 20, gap: 20 }}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
                         {signatureUrl && <Image src={signatureUrl} style={styles.img} />}
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
                         {stampUrl && <Image src={stampUrl} style={styles.img} />}
                     </View>
                 )}
+
             </Page>
         </Document>
     );

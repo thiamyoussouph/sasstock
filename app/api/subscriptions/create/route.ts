@@ -49,11 +49,14 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ subscription }, { status: 201 });
-    } catch (error: any) {
-        console.error(error);
-        return NextResponse.json(
-            { message: 'Erreur serveur', error: error.message },
-            { status: 500 }
-        );
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(error);
+            return NextResponse.json(
+                { message: 'Erreur serveur', error: error.message },
+                { status: 500 }
+            );
+        }
     }
+
 }
