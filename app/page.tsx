@@ -29,7 +29,7 @@ export default function LoginPage() {
     if (hydrated && user) {
       router.push('/admin/dashboard');
     }
-  }, [hydrated, user]);
+  }, [hydrated, user,router]);
 
   const validateForm = () => {
     let valid = true;
