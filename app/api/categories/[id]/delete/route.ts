@@ -1,14 +1,21 @@
-// --- app/api/categories/[id]/delete/route.ts ---
+// app/api/categories/[id]/delete/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
-    try {
-        await prisma.category.delete({ where: { id: params.id } });
-        return NextResponse.json({ message: 'Supprimée' });
-    } catch (error) {
-        return NextResponse.json({ message: 'Erreur' }, { status: 500 });
-    }
+// ✅ Typage correct pour les handlers App Router
+export async function DELETE(
+  req: NextRequest,
+  context: { params: { id: string } } // 👈 ce type doit être exactement celui-ci
+) {
+  const { id } = context.params;
+
+  try {
+    await prisma.category.delete({ where: { id } });
+    return NextResponse.json({ message: 'Supprimée' });
+  } catch (error) {
+    console.error(error); // 👈 utile pour debug
+    return NextResponse.json({ message: 'Erreur' }, { status: 500 });
+  }
 }
