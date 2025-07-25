@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   DropdownMenu,
@@ -8,24 +7,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Moon, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function AdminHeader() {
   const { user, logout } = useAuthStore();
-  const { theme, setTheme } = useTheme();
 
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/';
+    // window.location.href = '/';
   };
 
   const initials = user?.name
@@ -41,16 +33,7 @@ export function AdminHeader() {
       </h1>
 
       <div className="flex items-center gap-4">
-        {mounted && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="text-white hover:bg-gray-700 dark:hover:bg-gray-600"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </Button>
-        )}
+
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
