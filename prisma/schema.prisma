@@ -4,9 +4,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
 
 enum StockType {
   ENTREE // Entrée classique (livraison manuelle, don, retour client...)
