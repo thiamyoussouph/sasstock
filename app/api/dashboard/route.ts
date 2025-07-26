@@ -1,7 +1,6 @@
-// app/api/dashboard/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 const SECRET_KEY = process.env.JWT_SECRET || 'super_secret_ladygest';
@@ -15,9 +14,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const decoded: any = jwt.verify(token, SECRET_KEY);
+    // Vérification du token
+    const decoded = jwt.verify(token, SECRET_KEY) as { companyId: string };
+
+    if (!decoded || !decoded.companyId) {
+      return NextResponse.json({ message: 'Token invalide' }, { status: 401 });
+    }
+
     const companyId = decoded.companyId;
 
+    // Récupérer les statistiques
     const [productsCount, customersCount, salesCount, salesTotal] = await Promise.all([
       prisma.product.count({ where: { companyId } }),
       prisma.customer.count({ where: { companyId } }),
@@ -35,7 +41,7 @@ export async function GET(req: NextRequest) {
       salesTotal: salesTotal._sum.total ?? 0,
     });
   } catch (error) {
-    console.error('Erreur Dashboard API :', error);
-    return NextResponse.json({ message: 'Erreur serveur' }, { status: 500 });
+    console.error('Erreur dans /api/dashboard :', error);
+    return NextResponse.json({ message: 'Erreur interne du serveur' }, { status: 500 });
   }
 }

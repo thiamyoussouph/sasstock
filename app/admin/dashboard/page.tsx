@@ -3,28 +3,43 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 
+type Stats = {
+  productsCount: number;
+  customersCount: number;
+  salesCount: number;
+  salesTotal: number;
+};
+
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const [companyStats, setCompanyStats] = useState<any>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchStats() {
       try {
+        const token = localStorage.getItem('token');
         const res = await fetch('/api/dashboard', {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
-        if (!res.ok) throw new Error('Erreur lors du chargement des données');
+        if (!res.ok) throw new Error('Erreur de chargement');
+
         const data = await res.json();
-        setCompanyStats(data);
-      } catch (error) {
-        console.error('Erreur :', error);
+        setStats(data);
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError('Impossible de charger les statistiques.');
+      } finally {
+        setLoading(false);
       }
     }
 
-    fetchData();
+    fetchStats();
   }, []);
 
   return (
@@ -35,18 +50,19 @@ export default function DashboardPage() {
 
       <section>
         <h2 className="text-lg font-semibold">Statistiques générales</h2>
-        {companyStats ? (
-          <ul>
-            <li>Produits : {companyStats.productsCount}</li>
-            <li>Clients : {companyStats.customersCount}</li>
-            <li>Ventes : {companyStats.salesCount}</li>
-            <li>Total ventes : {companyStats.salesTotal} FCFA</li>
-          </ul>
-        ) : (
-          <p>Chargement...</p>
 
-        
-        )}
+        {loading ? (
+          <p>Chargement...</p>
+        ) : error ? (
+          <p className="text-red-600">{error}</p>
+        ) : stats ? (
+          <ul className="space-y-2 mt-4 text-gray-700 dark:text-gray-200">
+            <li>📦 Produits : <strong>{stats.productsCount}</strong></li>
+            <li>👥 Clients : <strong>{stats.customersCount}</strong></li>
+            <li>🧾 Ventes : <strong>{stats.salesCount}</strong></li>
+            <li>💰 Total des ventes : <strong>{stats.salesTotal.toLocaleString()} FCFA</strong></li>
+          </ul>
+        ) : null}
       </section>
     </main>
   );
