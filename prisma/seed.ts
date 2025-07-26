@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcryptjs from 'bcryptjs';
 
 const prisma = new PrismaClient();
-
+// gestion des teste 
 async function main() {
   const entities = [
     'CATEGORY', 'PRODUCT', 'INVOICE', 'SALE', 'CUSTOMER', 'SUPPLIER',
