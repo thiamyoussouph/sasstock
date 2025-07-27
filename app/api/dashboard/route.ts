@@ -1,3 +1,4 @@
+// app/api/dashboard/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
@@ -14,34 +15,27 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Vérification du token
-    const decoded = jwt.verify(token, SECRET_KEY) as { companyId: string };
-
-    if (!decoded || !decoded.companyId) {
-      return NextResponse.json({ message: 'Token invalide' }, { status: 401 });
-    }
-
+    const decoded: any = jwt.verify(token, SECRET_KEY);
     const companyId = decoded.companyId;
 
-    // Récupérer les statistiques
-    const [productsCount, customersCount, salesCount, salesTotal] = await Promise.all([
-      prisma.product.count({ where: { companyId } }),
-      prisma.customer.count({ where: { companyId } }),
-      prisma.sale.count({ where: { companyId } }),
-      prisma.sale.aggregate({
-        where: { companyId },
-        _sum: { total: true },
-      }),
-    ]);
+    // Récupère les statistiques liées à l’entreprise de l’utilisateur connecté
+    const productsCount = await prisma.product.count({ where: { companyId } });
+    const customersCount = await prisma.customer.count({ where: { companyId } });
+    const salesCount = await prisma.sale.count({ where: { companyId } });
+
+    const salesTotalData = await prisma.sale.aggregate({
+      where: { companyId },
+      _sum: { total: true },
+    });
 
     return NextResponse.json({
       productsCount,
       customersCount,
       salesCount,
-      salesTotal: salesTotal._sum.total ?? 0,
+      salesTotal: salesTotalData._sum.total || 0,
     });
   } catch (error) {
-    console.error('Erreur dans /api/dashboard :', error);
-    return NextResponse.json({ message: 'Erreur interne du serveur' }, { status: 500 });
+    console.error('Erreur stats dashboard :', error);
+    return NextResponse.json({ message: 'Token invalide ou erreur serveur' }, { status: 500 });
   }
 }

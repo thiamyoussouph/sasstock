@@ -1,69 +1,73 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuthStore } from '@/stores/auth-store';
+import { useRef } from 'react';
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
 
-type Stats = {
-  productsCount: number;
-  customersCount: number;
-  salesCount: number;
-  salesTotal: number;
-};
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-export default function DashboardPage() {
-  const { user } = useAuthStore();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const DashboardPage = () => {
+  const chartRef = useRef(null);
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/dashboard', {
-          headers: {
-            Authorization: `Bearer ${token}`,
+  const data = {
+    labels: ['10/10', '11/10', '12/10', '13/10', '14/10', '15/10'],
+    datasets: [
+      {
+        label: 'Ventes (FCFA)',
+        data: [4500, 5200, 4800, 6100, 7300, 6800],
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+        borderColor: 'rgba(59, 130, 246, 1)',
+        borderWidth: 1,
+        borderRadius: 6,
+        barPercentage: 0.6,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `Ventes: ${context.parsed.y.toLocaleString()} FCFA`;
           },
-        });
-
-        if (!res.ok) throw new Error('Erreur de chargement');
-
-        const data = await res.json();
-        setStats(data);
-        setError(null);
-      } catch (err) {
-        console.error(err);
-        setError('Impossible de charger les statistiques.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchStats();
-  }, []);
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function (this: any, tickValue: string | number) {
+            if (typeof tickValue === 'number') {
+              return tickValue.toLocaleString() + ' FCFA';
+            }
+            return tickValue;
+          },
+        },
+      },
+    },
+  };
 
   return (
-    <main className="flex-1 p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-        Bienvenue, {user?.name}
-      </h1>
-
-      <section>
-        <h2 className="text-lg font-semibold">Statistiques générales</h2>
-
-        {loading ? (
-          <p>Chargement...</p>
-        ) : error ? (
-          <p className="text-red-600">{error}</p>
-        ) : stats ? (
-          <ul className="space-y-2 mt-4 text-gray-700 dark:text-gray-200">
-            <li>📦 Produits : <strong>{stats.productsCount}</strong></li>
-            <li>👥 Clients : <strong>{stats.customersCount}</strong></li>
-            <li>🧾 Ventes : <strong>{stats.salesCount}</strong></li>
-            <li>💰 Total des ventes : <strong>{stats.salesTotal.toLocaleString()} FCFA</strong></li>
-          </ul>
-        ) : null}
-      </section>
-    </main>
+    <div className="p-10">
+      <h1 className="text-2xl font-bold mb-6">Tableau de bord simplifié</h1>
+      <div className="bg-white rounded-lg shadow p-6">
+        <Bar ref={chartRef} data={data} options={options} />
+      </div>
+    </div>
   );
-}
+};
+
+export default DashboardPage;
