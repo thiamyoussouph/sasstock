@@ -102,7 +102,7 @@ export default function CustomerPage() {
                 c.phone ?? '-',
                 c.email ?? '-',
                 c.address ?? '-',
-                `${c.credit.toFixed(2)} €`,
+                `${c.credit.toFixed(2)} fr`,
                 c.creditLimit?.toFixed(2) ?? '-',
             ]),
         });
