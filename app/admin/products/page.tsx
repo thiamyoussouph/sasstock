@@ -159,7 +159,7 @@ export default function ProductList() {
                                         {categories.find((c) => c.id === product.categoryId)?.name ??
                                             ""}
                                     </td>
-                                    <td className="px-4 py-2">{product.price.toFixed(2)} €</td>
+                                    <td className="px-4 py-2">{product.price.toFixed(2)} fr</td>
                                     <td className="px-4 py-2">{product.stockMin}</td>
                                     <td className="px-4 py-2">{product.quantity}</td>
                                     <td className="px-4 py-2">
