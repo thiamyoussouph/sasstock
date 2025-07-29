@@ -30,6 +30,7 @@ const AlertList: React.FC<AlertListProps> = ({ alerts }) => {
           }`}
         >
           {alert.message}
+          <button className="ml-2 text-sm text-gray-500">Dismiss</button>
         </div>
       ))}
     </div>
